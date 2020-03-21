@@ -47,7 +47,7 @@ HISTFILE=~/.zsh_history_TM
 alias freeupspace='sudo apt clean -y && sudo apt autoremove -y && sudo apt autoclean && rm -rfv ~/.cache/*'
 alias mkbuild='rm -rf build && mkdir build && cd build && ../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers && make -j4'
 alias mkinstall='sudo make install'
-alias dl='wget -r -e robots=off -nc -np'
+alias dl='wget -r -e robots=off -nc -nd --progress=dot'
 alias ..='cd ..'
 alias ...='cd ../../'
 alias re='cd -'
