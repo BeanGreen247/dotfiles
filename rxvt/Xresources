@@ -5,12 +5,12 @@ URxvt.saveLines:0
 
 ! special
 *.foreground:   #ffffff
-*.background:   #1d1f21
+*.background:   #000000
 *.cursorColor:  #ffffff
 
 ! black
-*.color0:       #2e3139
-*.color8:       #373b41
+*.color0:       #ffffff
+*.color8:       #ffffff
 
 ! red
 *.color1:       #bc1919
