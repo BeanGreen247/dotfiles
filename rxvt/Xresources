@@ -1,7 +1,7 @@
-URxvt.font: xft:mono:bold:size=10
-URxvt.clipboard.autocopy: true
-URxvt.scrollBar: false
-URxvt.saveLines:0
+*.font: xft:mono:bold:size=10
+*.clipboard.autocopy: true
+*.scrollBar: false
+*.saveLines:0
 
 ! special
 *.foreground:   #ffffff
@@ -41,23 +41,23 @@ URxvt.saveLines:0
 *.color15:      #ffffff
 
 !! Common Keybinds for Navigations
-URxvt.keysym.Shift-Up: command:\033]720;1\007
-URxvt.keysym.Shift-Down: command:\033]721;1\007
-URxvt.keysym.Control-Up: \033[1;5A
-URxvt.keysym.Control-Down: \033[1;5B
-URxvt.keysym.Control-Right: \033[1;5C
-URxvt.keysym.Control-Left: \033[1;5D
+*.keysym.Shift-Up: command:\033]720;1\007
+*.keysym.Shift-Down: command:\033]721;1\007
+*.keysym.Control-Up: \033[1;5A
+*.keysym.Control-Down: \033[1;5B
+*.keysym.Control-Right: \033[1;5C
+*.keysym.Control-Left: \033[1;5D
 
 !! Copy Paste & Other Extensions
-URxvt.perl-ext-common: default,clipboard,url-select,keyboard-select
-URxvt.copyCommand: xclip -i -selection clipboard
-URxvt.pasteCommand: xclip -o -selection clipboard
-URxvt.keysym.M-c: perl:clipboard:copy
-URxvt.keysym.M-v: perl:clipboard:paste
-URxvt.keysym.M-C-v: perl:clipboard:paste_escaped
-URxvt.keysym.M-Escape: perl:keyboard-select:activate
-URxvt.keysym.M-s: perl:keyboard-select:search
-URxvt.keysym.M-u: perl:url-select:select_next
-URxvt.urlLauncher: firefox
-URxvt.underlineURLs: true
-URxvt.urlButton: 1
+*.perl-ext-common: default,clipboard,url-select,keyboard-select
+*.copyCommand: xclip -i -selection clipboard
+*.pasteCommand: xclip -o -selection clipboard
+*.keysym.M-c: perl:clipboard:copy
+*.keysym.M-v: perl:clipboard:paste
+*.keysym.M-C-v: perl:clipboard:paste_escaped
+*.keysym.M-Escape: perl:keyboard-select:activate
+*.keysym.M-s: perl:keyboard-select:search
+*.keysym.M-u: perl:url-select:select_next
+*.urlLauncher: firefox
+*.underlineURLs: true
+*.urlButton: 1
