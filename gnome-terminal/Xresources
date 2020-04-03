@@ -1,0 +1,63 @@
+*.font: xft:mono:bold:size=10
+*.clipboard.autocopy: true
+*.scrollBar: false
+*.saveLines:0
+
+! special
+*.foreground:   #ffffff
+*.background:   #000000
+*.cursorColor:  #ffffff
+
+! black
+*.color0:       #ffffff
+*.color8:       #ffffff
+
+! red
+*.color1:       #bc1919
+*.color9:       #ff0000
+
+! green
+*.color2:       #008000
+*.color10:      #00b92c
+
+! yellow
+*.color3:       #ffb600
+*.color11:      #ffb600
+
+! blue
+*.color4:       #0066ff
+*.color12:      #0066ff
+
+! magenta
+*.color5:       #ff00cb
+*.color13:      #ff00cb
+
+! cyan
+*.color6:       #00ffdd
+*.color14:      #00ffdd
+
+! white
+*.color7:       #00ffe9
+*.color15:      #ffffff
+
+!! Common Keybinds for Navigations
+*.keysym.Shift-Up: command:\033]720;1\007
+*.keysym.Shift-Down: command:\033]721;1\007
+*.keysym.Control-Up: \033[1;5A
+*.keysym.Control-Down: \033[1;5B
+*.keysym.Control-Right: \033[1;5C
+*.keysym.Control-Left: \033[1;5D
+
+!! Copy Paste & Other Extensions
+*.perl-ext-common: default,clipboard,url-select,keyboard-select
+*.copyCommand: xclip -i -selection clipboard
+*.pasteCommand: xclip -o -selection clipboard
+*.keysym.M-c: perl:clipboard:copy
+*.keysym.M-v: perl:clipboard:paste
+*.keysym.M-C-v: perl:clipboard:paste_escaped
+*.keysym.M-Escape: perl:keyboard-select:activate
+*.keysym.M-s: perl:keyboard-select:search
+*.keysym.M-u: perl:url-select:select_next
+*.urlLauncher: chromium-browser
+*.underlineURLs: true
+*.urlButton: 1
