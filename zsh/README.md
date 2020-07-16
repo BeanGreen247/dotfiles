@@ -7,5 +7,5 @@ wget -O ~/.zshrc https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/
 wget -O ~/.zprofile https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/zsh/zprofile
 ```
 ```
-wget -O ~/.zprofile https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/zsh/xinitrc
+wget -O ~/.xinitrc https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/zsh/xinitrc
 ```
