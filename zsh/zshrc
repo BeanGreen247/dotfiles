@@ -29,7 +29,12 @@ plugins=(git docker debian go npm python pyenv ruby vscode)
 
 # Enable colors and change prompt:
 autoload -U colors && colors
-PS1="%B%{$fg[yellow]%}%n%{$fg[magenta]%}@%{$fg[blue]%}%M %{$fg[green]%}%~%{$fg[white]%} "
+PS1="%{$fg[green]%}%M%{$fg[green]%}:%{$fg[green]%}%~ %{$fg[green]%}%n%{$fg[green]%}$ "
+# %{$fg[green]%}%n username
+# %{$fg[green]%}$ mode user/root
+# %{$fg[green]%}%~ directory
+# %{$fg[green]%}%M hostname
+#%{$fg[green]%}:
 
 # History in a seperate file
 HISTSIZE=50000
@@ -44,7 +49,7 @@ HIST_STAMPS="yyyy-mm-dd"
 HISTFILE=~/.zsh_history_TM
 
 # Custom alias
-alias freeupspace='sudo apt clean -y && sudo apt autoremove -y && sudo apt autoclean && rm -rfv ~/.cache/*'
+alias freeupspace='sudo apt clean -y && sudo apt autoremove -y && sudo apt autoclean'
 alias mkbuild='rm -rf build && mkdir build && cd build && ../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers && make -j4'
 alias mkinstall='sudo make install'
 alias dl='wget -r -e robots=off -nc -nd --progress=dot'
@@ -110,25 +115,25 @@ bindkey -M menuselect 'j' vi-down-line-or-history
 bindkey -v '^?' backward-delete-char
 
 # Change cursor shape for different vi modes.
-function zle-keymap-select {
-  if [[ ${KEYMAP} == vicmd ]] ||
-     [[ $1 = 'block' ]]; then
-    echo -ne '\e[1 q'
-  elif [[ ${KEYMAP} == main ]] ||
-       [[ ${KEYMAP} == viins ]] ||
-       [[ ${KEYMAP} = '' ]] ||
-       [[ $1 = 'beam' ]]; then
-    echo -ne '\e[5 q'
-  fi
-}
-zle -N zle-keymap-select
-zle-line-init() {
-    zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
-    echo -ne "\e[5 q"
-}
-zle -N zle-line-init
-echo -ne '\e[5 q' # Use beam shape cursor on startup.
-preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
+#function zle-keymap-select {
+#  if [[ ${KEYMAP} == vicmd ]] ||
+#     [[ $1 = 'block' ]]; then
+#    echo -ne '\e[1 q'
+#  elif [[ ${KEYMAP} == main ]] ||
+#       [[ ${KEYMAP} == viins ]] ||
+#       [[ ${KEYMAP} = '' ]] ||
+#       [[ $1 = 'beam' ]]; then
+#    echo -ne '\e[5 q'
+#  fi
+#}
+#zle -N zle-keymap-select
+#zle-line-init() {
+#    zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
+#    echo -ne "\e[5 q"
+#}
+#zle -N zle-line-init
+#echo -ne '\e[5 q' # Use beam shape cursor on startup.
+#preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
 
 # Use lf to switch directories and bind it to ctrl-o
 lfcd () {
