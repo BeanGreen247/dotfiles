@@ -14,7 +14,10 @@ set t_vb=
 set tm=500
 set autoindent
 set splitbelow
+set cursorline
 set termwinsize=10x0
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#formatter = 'default'
 
 vnoremap <silent> * :<C-U>
   \let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
@@ -66,15 +69,6 @@ let g:ctrlp_abbrev = {
 " Enable Line numbers
 :map <Leader>w :set number<CR> <bar> :set relativenumber<CR>
 
-" easytags config:
-" Make tagging async
-" Tag all the files (instead of the current one) WARNING: Do not open vim in a
-" big directory structure ( eg. ~/ )
-"let g:easytags_async = 1
-"let g:easytags_autorecurse = 1
-let g:airline_section_y = "%{gutentags#statusline('Generating Tags My guy......')}"
-let g:airline_theme = 'codedark'
-
 let g:ctrlp_cache_dir = $HOME . '/.cache/ctrlp'
 
 " Time for rg instead of ag, Thanks: https://elliotekj.com/2016/11/22/setup-ctrlp-to-use-ripgrep-in-vim/
@@ -114,20 +108,7 @@ set foldmethod=indent
 set foldnestmax=10
 set foldlevel=2
 
+" Adds cursor line highlighting
+:hi CursorLine   cterm=NONE ctermbg=darkgray ctermfg=white guibg=darkgray guifg=white
+
 autocmd StdinReadPre * let s:std_in=1
-
-" Disable arrow keys
-no <down> <Nop>
-no <left> <Nop>
-no <right> <Nop>
-no <up> <Nop>
-
-ino <down> <Nop>
-ino <left> <Nop>
-ino <right> <Nop>
-ino <up> <Nop>
-
-vno <down> <Nop>
-vno <left> <Nop>
-vno <right> <Nop>
-vno <up> <Nop>
