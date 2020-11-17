@@ -16,8 +16,28 @@ set autoindent
 set splitbelow
 set cursorline
 set termwinsize=10x0
+set noswapfile
+set nobackup
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'default'
+set tabstop=4 softtabstop=4
+set shiftwidth=4
+let mapleader = "f"
+
+" added plugins using plugged
+call plug#begin('~/.vim/plugged')
+
+Plug 'morhetz/gruvbox'
+Plug 'junegunn/fzf.vim'
+Plug 'stsewd/fzf-checkout.vim'
+Plug 'vim-utils/vim-man'
+Plug 'Valloric/YouCompleteMe'
+
+call plug#end()
+
+" define gruvbox theme
+colorscheme gruvbox
+set background=dark
 
 vnoremap <silent> * :<C-U>
   \let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
@@ -109,6 +129,12 @@ set foldnestmax=10
 set foldlevel=2
 
 " Adds cursor line highlighting
-:hi CursorLine   cterm=NONE ctermbg=darkgray ctermfg=white guibg=darkgray guifg=white
+:hi CursorLine cterm=NONE ctermbg=darkgray guibg=darkgray
 
 autocmd StdinReadPre * let s:std_in=1
+
+noremap <leader>h :wincmd h<CR>
+noremap <leader>j :wincmd j<CR>
+noremap <leader>k :wincmd k<CR>
+noremap <leader>l :wincmd l<CR>
+noremap <leader>v :wincmd v<CR>
