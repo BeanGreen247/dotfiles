@@ -12,3 +12,8 @@ vim-airline
 ```
 git clone https://github.com/vim-airline/vim-airline ~/.vim/pack/dist/start/vim-airline
 ```
+install vim-plug
+
+https://github.com/junegunn/vim-plug
+
+and follow the steps on installing plugins there
