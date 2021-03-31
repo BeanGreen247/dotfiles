@@ -3,6 +3,7 @@ URxvt.scrollBar: false
 URxvt.saveLines:10000
 URxvt.font: xft:Hermit:size=9
 URxvt.geometry: 80x35
+URxvt.letterSpace: -1
 
 ! special
 *.foreground:   #919191
