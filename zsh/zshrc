@@ -30,7 +30,7 @@ plugins=(git docker debian go npm python pyenv ruby vscode)
 # Enable colors and change prompt:
 autoload -U colors && colors
 #PS1="%{$fg[red%}%M%{$fg[pink]%}:%{$fg[purple]%}%~ %{$fg[green]%}%n%{$fg[green]%}$ "
-PROMPT="%F{197}%* %f%F{162}%n@%f%F{13}%m %f%F{6}$ %F{white}%"
+PROMPT="%f%F{6}{%F{197}%*%f%F{6}}%f%F{13}%m%f%F{6}:%F{white}%~ %f%F{162}%n %f%F{6}$ %F{white}%"
 # %{$fg[green]%}%n username
 # %{$fg[green]%}$ mode user/root
 # %{$fg[green]%}%~ directory
