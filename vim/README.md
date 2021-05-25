@@ -8,10 +8,10 @@ How to apply
 ```
 wget -O ~/.vimrc https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/vim/vimrc
 ```
-vim-airline
-```
-git clone https://github.com/vim-airline/vim-airline ~/.vim/pack/dist/start/vim-airline
-```
+theme tokyonight-vim
+
+https://github.com/ghifarit53/tokyonight-vim
+
 install vim-plug
 
 https://github.com/junegunn/vim-plug
