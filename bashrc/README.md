@@ -1,4 +1,4 @@
-# zsh
+# bashrc
 ![How it looks.](bashrc.png)
 
 Just replace PS1 with this in your bashrc file
