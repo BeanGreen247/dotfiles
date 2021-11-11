@@ -7,14 +7,17 @@ PS1='\[\e[0;1;93m\]|\[\e[0;1;93m\]\u\[\e[0;38;5;214m\]@\[\e[0;1;38;5;196m\]\h \[
 ```
 Here are my favorite features
 
-Arch wiki search
+Search in terminal on Arch Wiki and DuckDuckGo
 ```bash
-### Search term or command on Arch Wiki
-#### Creates a custom command to look up a command on Arch Wiki directly in
+### Search on Arch Wiki
+#### Creates a custom command to open the search page on Arch Wiki directly in
 #### your terminal
 wiki() {
-    search_term="${1}"
-    links https://wiki.archlinux.org/index.php?search=${search_term}
+    links https://wiki.archlinux.org/index.php?search=
+}
+### Same as before but DuckDuckGo search
+ddg() {
+    links https://duckduckgo.com/?q=
 }
 ```
 

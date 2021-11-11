@@ -182,10 +182,13 @@ export LESS_TERMCAP_us=$'\E[01;36m'
 export LESS=-R
 
 ## Tweaks
-### Search term or command on Arch Wiki
-#### Creates a custom command to look up a command on Arch Wiki directly in
+### Search on Arch Wiki
+#### Creates a custom command to open the search page on Arch Wiki directly in
 #### your terminal
 wiki() {
-    search_term="${1}"
-    links https://wiki.archlinux.org/index.php?search=${search_term}
+    links https://wiki.archlinux.org/index.php?search=
+}
+### Same as before but DuckDuckGo search
+ddg() {
+    links https://duckduckgo.com/?q=
 }
