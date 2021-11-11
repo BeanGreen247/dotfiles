@@ -18,7 +18,7 @@ wiki() {
 }
 ```
 
-Custom IDE
+### Custom IDE
 ```bash
 #### This alias creates a tmux session with 3 panes and all moved to ~/CODE/ directory
 export PROJECT_DIR='~/CODE/'
