@@ -6,7 +6,7 @@ ls -a -s -h -w 1 --color=auto $(sh -c 'tmux display-message -p -F "#{pane_curren
 ### This section if commented out prevents from pane to the right of
 ### the main IDE window from changing its directory automatically
 ### if you want to enable it just remove the comments
-### same goes if you want to turn off this feaature for pane below
+### same goes if you want to turn off this feature for pane below
 
 ### pane to the right of the main pane
 #if [ $(sh -c 'tmux display-message -p -F "#{pane_current_path}" -t2') != $(sh -c 'tmux display-message -p -F "#{pane_current_path}" -t1') ]
