@@ -1,4 +1,7 @@
 # vimrc
+
+## the main vimrc
+
 To make sure that my vimrc file works you need to get the NERDTree module.
 ```
 git clone https://github.com/scrooloose/nerdtree.git ~/.vim/pack/vendor/start/nerdtree
@@ -17,3 +20,10 @@ install vim-plug
 https://github.com/junegunn/vim-plug
 
 and follow the steps on installing plugins there
+
+## the rpi vimrc
+created to be used for rpi projects
+How to apply
+```
+wget -O ~/.vimrc https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/vim/rpi-vimrc
+```
