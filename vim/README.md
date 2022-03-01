@@ -23,6 +23,7 @@ and follow the steps on installing plugins there
 
 ## the rpi vimrc
 created to be used for rpi projects
+
 How to apply
 ```
 wget -O ~/.vimrc https://raw.githubusercontent.com/BeanGreen247/dotfiles/master/vim/rpi-vimrc
