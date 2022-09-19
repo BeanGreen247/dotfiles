@@ -5,6 +5,11 @@ Just replace PS1 with this in your bashrc file
 ```bash
 PS1='\[\e[0;1;93m\]|\[\e[0;1;93m\]\u\[\e[0;38;5;214m\]@\[\e[0;1;38;5;196m\]\h \[\e[0;91m\][\[\e[0;1;93m\]\t\[\e[0;91m\]] \[\e[0;1;93m\]\w \[\e[0;93m\]branch:\[\e[0;1;93m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0;1;93m\]|\n\[\e[0;93m\]>\[\e[0;93m\]>\[\e[0;93m\]> \[\e[0m\]'
 ```
+Just replace PS1 with this in your bashrc file for a blue color scheme
+```bash
+PS1='\[\e[0;1;94m\]|\[\e[0;1;94m\]\u\[\e[0;1;97m\]@\[\e[0;1;96m\]\h \[\e[0;97m\][\[\e[0;1;94m\]\t\[\e[0;97m\]] \[\e[0;1;96m\]\w \[\e[0;94m\]branch:\[\e[0;1;96m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0;1;94m\]|\n\[\e[0;94m\]>\[\e[0;94m\]>\[\e[0;94m\]> \[\e[0m\]'
+```
+
 Here are my favorite features
 
 Search in terminal on Arch Wiki and DuckDuckGo
