@@ -117,7 +117,7 @@ Once installed, fuzzy search with `Ctrl+R`:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone https://github.com/BeanGreen247/dotfiles.git ~/dotfiles
 
 # Backup existing configs
 cp ~/.bashrc ~/.bashrc.backup 2>/dev/null
@@ -135,7 +135,7 @@ vim  # Plugins auto-install on first run
 ### Windows (Git Bash)
 
 ```bash
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone https://github.com/BeanGreen247/dotfiles.git ~/dotfiles
 ln -sf ~/dotfiles/bashrc/bashrc-windows ~/.bashrc
 ln -sf ~/dotfiles/vim/vimrc ~/.vimrc
 source ~/.bashrc
@@ -144,7 +144,7 @@ source ~/.bashrc
 ### Raspberry Pi
 
 ```bash
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone https://github.com/BeanGreen247/dotfiles.git ~/dotfiles
 ln -sf ~/dotfiles/bashrc/bashrc ~/.bashrc  # Or use bashrc-windows if using Git Bash
 ln -sf ~/dotfiles/vim/vimrc-rpi ~/.vimrc
 source ~/.bashrc
