@@ -2,7 +2,7 @@
 
 Personal shell and editor configuration files optimized for productivity and cross-platform compatibility.
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 dotfiles/
@@ -20,7 +20,7 @@ dotfiles/
     └── vim/             # Original vim configurations
 ```
 
-## 🚀 Features Overview
+## Features Overview
 
 ### Bash Configurations
 
@@ -48,7 +48,7 @@ dotfiles/
 | Memory Usage | ~50MB | ~5MB | ~3MB |
 | Best For | Development | Servers/SSH | Raspberry Pi |
 
-## 🚀 Bash Features
+## Bash Features
 
 ### Modern Bash Prompt
 
@@ -111,7 +111,7 @@ Once installed, fuzzy search with `Ctrl+R`:
 - **Windows (Git Bash)**: Optimized with cached stats and `wmic` integration
 - **Raspberry Pi**: Lightweight with minimal SD card writes
 
-## 📥 Installation
+## Installation
 
 ### Quick Install (Linux/macOS)
 
@@ -162,7 +162,7 @@ ln -sf ~/dotfiles/vim/vimrc-minimal ~/.vimrc
 ln -sf ~/dotfiles/bashrc/bashrc ~/.bashrc
 ```
 
-## ⚙️ Configuration Details
+## Configuration Details
 
 ### Bash: Linux/macOS (`bashrc/bashrc`)
 
@@ -271,7 +271,7 @@ export STATS_UPDATE_INTERVAL=5
 - `set updatecount=100` - Reduced write frequency
 - Trimming only on save for specific file types
 
-## 🎨 Customization
+## Customization
 
 ### Color Scheme
 
@@ -305,7 +305,7 @@ The bashrc sources additional files if they exist:
 The vimrc sources:
 - `~/.vimrc.local` - Machine-specific Vim settings
 
-## 🔧 Included Aliases
+## Included Aliases
 
 ### Navigation
 - `..`, `...`, `....` - Quick directory traversal
@@ -337,7 +337,7 @@ The vimrc sources:
 - **Python**: `py`, `venv`, `activate`
 - **Node**: `ni`, `nr`, `ns`, `nt`
 
-## 📊 System Requirements
+## System Requirements
 
 ### Bash Requirements
 
@@ -368,7 +368,7 @@ The vimrc sources:
 - Vim 7.4+ (any version)
 - No external dependencies
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Bash Issues
 
@@ -420,7 +420,7 @@ The config automatically falls back to built-in `desert` theme if gruvbox isn't 
 **NERDTree icons not showing:**
 Install a Nerd Font and set it in your terminal.
 
-## 💡 Tips & Tricks
+## Tips & Tricks
 
 ### Bash Tips
 
@@ -465,7 +465,7 @@ vaB                          " Select around braces
 vi"                          " Select inside quotes
 ```
 
-## 🚀 Quick Reference
+## Quick Reference
 
 ### Switching Configurations
 
@@ -499,7 +499,7 @@ scp ~/dotfiles/bashrc/bashrc user@server:~/.bashrc
 scp ~/dotfiles/vim/vimrc-minimal user@server:~/.vimrc
 ```
 
-## 📝 History Configuration
+## History Configuration
 
 | Config | Memory | File | Features |
 |--------|--------|------|----------|
@@ -507,15 +507,15 @@ scp ~/dotfiles/vim/vimrc-minimal user@server:~/.vimrc
 | Windows | 10,000 | 20,000 | Same + `cls` |
 | RPi | 10,000 | 20,000 | Same |
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to fork and customize for your own use. Pull requests for bug fixes are welcome.
 
-## 📄 License
+## License
 
 MIT License - Feel free to use and modify as needed.
 
-## 🔗 Resources
+## Resources
 
 ### Bash
 - [Bash Prompt HOWTO](https://tldp.org/HOWTO/Bash-Prompt-HOWTO/)
@@ -532,5 +532,5 @@ MIT License - Feel free to use and modify as needed.
 
 ---
 
-**Last Updated:** 2024
+**Last Updated:** 2026
 **Maintained by:** bean
