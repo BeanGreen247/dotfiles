@@ -1,0 +1,201 @@
+" ~/.vimrc: Minimal Vim configuration
+" No external plugins or internet dependencies
+
+" Compatibility & Encoding
+set nocompatible
+set encoding=utf-8
+filetype plugin indent on
+syntax enable
+
+" General Settings
+set mouse=a
+set clipboard=unnamedplus
+set backspace=indent,eol,start
+set history=1000
+set undofile
+set undodir=~/.vim/undo
+set backup
+set backupdir=~/.vim/backup
+set directory=~/.vim/swap
+set updatetime=300
+set timeoutlen=500
+
+" Create directories if they don't exist
+if !isdirectory(expand(&undodir))
+    call mkdir(expand(&undodir), "p")
+endif
+if !isdirectory(expand(&backupdir))
+    call mkdir(expand(&backupdir), "p")
+endif
+if !isdirectory(expand(&directory))
+    call mkdir(expand(&directory), "p")
+endif
+
+" UI & Appearance
+set number
+set relativenumber
+set cursorline
+set cursorlineopt=number
+set showcmd
+set showmode
+set ruler
+set laststatus=2
+set showtabline=2
+set signcolumn=yes
+set scrolloff=8
+set sidescrolloff=8
+set list
+set listchars=tab:→\ ,trail:·,nbsp:␣,extends:⟩,precedes:⟨
+
+" Colors
+if has('termguicolors')
+    set termguicolors
+endif
+set background=dark
+colorscheme desert
+
+" Custom highlights
+highlight CursorLine cterm=underline gui=underline ctermbg=NONE guibg=NONE
+highlight CursorLineNr cterm=bold gui=bold ctermfg=Yellow guifg=Yellow
+
+" Search Settings
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
+set wrapscan
+
+" Indentation & Formatting
+set autoindent
+set smartindent
+set expandtab
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set shiftround
+
+" Code Folding
+set foldenable
+set foldmethod=indent
+set foldlevelstart=10
+set foldnestmax=10
+
+" Completion & Wildmenu
+set wildmenu
+set wildmode=longest:full,full
+set wildignore+=*.o,*.obj,*.pyc,*.class,*.swp,*.zip
+set wildignore+=*/tmp/*,*/node_modules/*,*/.git/*
+set completeopt=menuone,preview
+
+" Key Mappings
+let mapleader = " "
+let maplocalleader = ","
+
+" Quick save & quit
+nnoremap <leader>w :w<CR>
+nnoremap <leader>q :q<CR>
+nnoremap <leader>x :x<CR>
+nnoremap <leader>Q :qa!<CR>
+
+" Clear search highlighting
+nnoremap <leader><space> :nohlsearch<CR>
+
+" Window navigation
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Window resizing
+nnoremap <leader>= <C-w>=
+nnoremap <leader>+ :resize +5<CR>
+nnoremap <leader>- :resize -5<CR>
+nnoremap <leader>> :vertical resize +5<CR>
+nnoremap <leader>< :vertical resize -5<CR>
+
+" Buffer navigation
+nnoremap <leader>bn :bnext<CR>
+nnoremap <leader>bp :bprevious<CR>
+nnoremap <leader>bd :bdelete<CR>
+nnoremap <leader>bl :buffers<CR>
+
+" Tab navigation
+nnoremap <leader>tn :tabnew<CR>
+nnoremap <leader>tc :tabclose<CR>
+nnoremap <leader>to :tabonly<CR>
+nnoremap <leader>1 1gt
+nnoremap <leader>2 2gt
+nnoremap <leader>3 3gt
+nnoremap <leader>4 4gt
+nnoremap <leader>5 5gt
+
+" Move lines up/down
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
+
+" Indent without losing selection
+vnoremap < <gv
+vnoremap > >gv
+
+" Paste without yanking in visual mode
+vnoremap p "_dP
+
+" Better Y behavior
+nnoremap Y y$
+
+" Text objects for brackets
+xnoremap ib i(
+xnoremap iB i{
+xnoremap is i[
+xnoremap iS i<
+xnoremap ab a(
+xnoremap aB a{
+xnoremap as a[
+xnoremap aS a<
+
+" Jump between matching brackets
+nnoremap <leader>% %
+vnoremap <leader>% %
+
+" File explorer (built-in netrw)
+nnoremap <leader>n :Explore<CR>
+nnoremap <leader>f :Explore %:p:h<CR>
+
+" Better netrw settings
+let g:netrw_banner=0
+let g:netrw_liststyle=3
+let g:netrw_browse_split=4
+let g:netrw_altv=1
+let g:netrw_winsize=25
+
+" Language-Specific Settings
+autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=4 softtabstop=4
+autocmd FileType javascript,typescript,html,css,json setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2
+autocmd FileType sh,bash setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2
+autocmd FileType markdown setlocal wrap linebreak nolist textwidth=0 wrapmargin=0
+
+" Auto Commands
+autocmd BufReadPost *
+    \ if line("'\"") > 0 && line("'\"") <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif
+
+" Trim trailing whitespace on save
+autocmd BufWritePre * %s/\s\+$//e
+
+" Custom Commands
+command! Vimrc :e $MYVIMRC
+command! Source :source $MYVIMRC
+
+" Simple status line
+set statusline=%f\ %m%r%h%w
+set statusline+=%=
+set statusline+=%y\ [%{&ff}]
+set statusline+=\ %l:%c\ %p%%
+
+" Local Configuration
+if filereadable(expand("~/.vimrc.local"))
+    source ~/.vimrc.local
+endif

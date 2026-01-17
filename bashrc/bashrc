@@ -1,6 +1,4 @@
 # ~/.bashrc: executed by bash(1) for non-login shells.
-# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
-# for examples
 
 # If not running interactively, don't do anything
 case $- in
@@ -8,190 +6,464 @@ case $- in
       *) return;;
 esac
 
-# don't put duplicate lines or lines starting with space in the history.
-# See bash(1) for more options
-HISTCONTROL=ignoreboth
+# Shell options
+shopt -s histappend          # Append to history file, don't overwrite
+shopt -s checkwinsize        # Update LINES and COLUMNS after each command
+shopt -s globstar            # Enable ** for recursive glob matching
+shopt -s cdspell             # Autocorrect typos in cd commands
+shopt -s dirspell            # Autocorrect directory names during completion
+shopt -s nocaseglob          # Case-insensitive globbing
+shopt -s cmdhist             # Save multi-line commands as one history entry
 
-# append to the history file, don't overwrite it
-shopt -s histappend
+# History configuration
+HISTSIZE=50000                      # Commands in memory
+HISTFILESIZE=100000                 # Commands in file
+HISTCONTROL=ignoreboth:erasedups   # Ignore duplicates and spaces
+HISTIGNORE="ls:ll:la:cd:pwd:exit:clear:history"
+HISTTIMEFORMAT="%F %T "            # Add timestamps to history
 
-# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+# Environment variables
+export EDITOR=vim
+export VISUAL=vim
+export PAGER=less
+export LESS='-R -i -M -W -q'       # Better less options
 
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
+# Color support for less (man pages)
+export LESS_TERMCAP_mb=$'\E[1;32m'
+export LESS_TERMCAP_md=$'\E[1;32m'
+export LESS_TERMCAP_me=$'\E[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[01;47;34m'
+export LESS_TERMCAP_ue=$'\E[0m'
+export LESS_TERMCAP_us=$'\E[1;36m'
 
-# If set, the pattern "**" used in a pathname expansion context will
-# match all files and zero or more directories and subdirectories.
-#shopt -s globstar
+# Prompt configuration
+timer_start_time=0
+timer_show=""
+last_exit_code=0
+cpu_usage=""
+mem_usage=""
+status_color=""
+git_info=""
+STATS_UPDATE_INTERVAL=1
 
-# make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+function timer_start {
+    timer_start_time=$(date +%s%3N 2>/dev/null || echo $(($(date +%s) * 1000)))
+}
 
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
-fi
-
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    xterm-color|*-256color) color_prompt=yes;;
-esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
-
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
+function timer_stop {
+    last_exit_code=$?
+    local end_time=$(date +%s%3N 2>/dev/null || echo $(($(date +%s) * 1000)))
+    local elapsed=$((end_time - timer_start_time))
+    
+    # Set status color based on exit code
+    if [ $last_exit_code -eq 0 ]; then
+        status_color="32"  # Green
+    elif [ $last_exit_code -eq 130 ]; then
+        status_color="33"  # Yellow
     else
-	color_prompt=
+        status_color="31"  # Red
+    fi
+    
+    # Format time
+    if [ $elapsed -lt 1000 ]; then
+        timer_show="${elapsed}ms"
+    elif [ $elapsed -lt 60000 ]; then
+        timer_show="$(awk "BEGIN {printf \"%.2f\", $elapsed/1000}" 2>/dev/null || echo "${elapsed}ms")s"
+    else
+        local minutes=$((elapsed / 60000))
+        local seconds=$((elapsed % 60000))
+        timer_show="${minutes}m $(awk "BEGIN {printf \"%.1f\", $seconds/1000}" 2>/dev/null || echo "0")s"
+    fi
+}
+
+# Get system stats (cross-platform, optimized)
+function get_system_stats {
+    # CPU usage
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if command -v top &> /dev/null; then
+            cpu_usage=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}' 2>/dev/null || echo "N/A")
+        else
+            cpu_usage="N/A"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        cpu_usage=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%.1f%%", s}' 2>/dev/null || echo "N/A")
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$(uname -s)" == MINGW* ]]; then
+        if command -v wmic.exe &> /dev/null; then
+            cpu_usage=$(wmic.exe cpu get loadpercentage 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
+            [ -n "$cpu_usage" ] && cpu_usage="${cpu_usage}%" || cpu_usage="N/A"
+        else
+            cpu_usage="N/A"
+        fi
+    else
+        cpu_usage="N/A"
+    fi
+    
+    # Memory usage in MB
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ -f /proc/meminfo ]; then
+            local total=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null)
+            local available=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null)
+            if [ -n "$total" ] && [ -n "$available" ]; then
+                local used=$((($total - $available) / 1024))
+                mem_usage="${used}M"
+            else
+                mem_usage="N/A"
+            fi
+        else
+            mem_usage="N/A"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if command -v vm_stat &> /dev/null; then
+            local pages_active=$(vm_stat | awk '/Pages active/ {gsub(/\./, "", $3); print $3}')
+            local pages_wired=$(vm_stat | awk '/Pages wired/ {gsub(/\./, "", $4); print $4}')
+            if [ -n "$pages_active" ] && [ -n "$pages_wired" ]; then
+                local used=$((($pages_active + $pages_wired) * 4096 / 1024 / 1024))
+                mem_usage="${used}M"
+            else
+                mem_usage="N/A"
+            fi
+        else
+            mem_usage="N/A"
+        fi
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$(uname -s)" == MINGW* ]]; then
+        if command -v wmic.exe &> /dev/null; then
+            local total=$(wmic.exe OS get TotalVisibleMemorySize 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
+            local free=$(wmic.exe OS get FreePhysicalMemory 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
+            if [ -n "$total" ] && [ -n "$free" ]; then
+                local used=$(( (total - free) / 1024 ))
+                mem_usage="${used}M"
+            else
+                mem_usage="N/A"
+            fi
+        else
+            mem_usage="N/A"
+        fi
+    else
+        mem_usage="N/A"
+    fi
+    
+    # Git info - build once per prompt
+    git_info=""
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+        local dirty=""
+        [[ $(git status --porcelain 2>/dev/null) ]] && dirty="*"
+        if [ -n "$branch" ]; then
+            git_info=" git:${branch}${dirty}"
+        fi
+    fi
+}
+
+# Build prompt dynamically
+build_prompt() {
+    local status_text
+    if [ $last_exit_code -eq 0 ]; then
+        status_text="0"
+    elif [ $last_exit_code -eq 130 ]; then
+        status_text="INT"
+    else
+        status_text="$last_exit_code"
+    fi
+    
+    PS1='\[\e[0;90m\][\[\e[0m\]'
+    PS1+="\[\e[0;${status_color}m\]${status_text}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;36m\]${timer_show}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;35m\]${cpu_usage}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;33m\]${mem_usage}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]]\[\e[0m\] '
+    PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] '
+    PS1+='\[\e[0;37m\]\w\[\e[0m\]'
+    
+    if [ -n "$git_info" ]; then
+        PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
+    fi
+    
+    PS1+='\n\[\e[0;90m\]$\[\e[0m\] '
+    
+    case "$TERM" in
+    xterm*|rxvt*)
+        PS1="\[\e]0;\u@\h: \w\a\]$PS1"
+        ;;
+    esac
+}
+
+# Set up trap and prompt command (single declaration)
+trap 'timer_start' DEBUG
+PROMPT_COMMAND='timer_stop; get_system_stats; build_prompt'
+
+# Bash inline autosuggestions (fish/zsh-style)
+# This provides real-time suggestions as you type
+
+# Enable programmable completion for better suggestions
+if ! shopt -oq posix; then
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        . /etc/bash_completion
     fi
 fi
 
-if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-else
-    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+# Bind arrow keys for prefix-based history search
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
+# Bind Right arrow to accept autosuggestion character by character
+bind '"\e[C": forward-char'
+
+# Bind Ctrl+F or End to accept entire suggestion
+bind '"\C-f": end-of-line'
+bind '"\e[F": end-of-line'
+
+# Bind Tab for normal completion
+bind 'set show-all-if-ambiguous on'
+bind 'set completion-ignore-case on'
+bind 'set colored-stats on'
+bind 'set visible-stats on'
+bind 'set mark-symlinked-directories on'
+bind 'set colored-completion-prefix on'
+bind 'set menu-complete-display-prefix on'
+
+# Use fzf for Ctrl+R if available
+if command -v fzf &> /dev/null; then
+    bind '"\C-r": "\C-x\C-r"'
+    bind -x '"\C-x\C-r": __fzf_history'
+    
+    __fzf_history() {
+        local selected
+        selected=$(
+            HISTTIMEFORMAT= history | 
+            fzf --tac --no-sort --height 40% --reverse \
+                --query "$READLINE_LINE" \
+                --bind 'ctrl-y:execute-silent(echo -n {2..} | xclip -selection clipboard)' \
+                --header 'Press CTRL-Y to copy command into clipboard' \
+                --preview 'echo {}' --preview-window down:3:wrap | 
+            sed 's/^[ ]*[0-9]*[ ]*//'
+        )
+        if [ -n "$selected" ]; then
+            READLINE_LINE="$selected"
+            READLINE_POINT=${#READLINE_LINE}
+        fi
+    }
 fi
-unset color_prompt force_color_prompt
 
-# If this is an xterm set the title to user@host:dir
-case "$TERM" in
-xterm*|rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-    ;;
-*)
-    ;;
-esac
-
-# enable color support of ls and also add handy aliases
+# Colors & tools
+# Enable color support for ls and grep
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
-    #alias dir='dir --color=auto'
-    #alias vdir='vdir --color=auto'
-
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
 
-# colored GCC warnings and errors
-#export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+# Better less for non-text files
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
-
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
-
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
-  elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
-fi
-## Custom section
-parse_git_branch() {
-  git symbolic-ref --short HEAD 2>/dev/null
-}
-
-## Prompt
-PS1='\[\e[0;1;93m\]|\u\[\e[0;38;5;214m\]@\[\e[0;1;38;5;196m\]\h \[\e[0;91m\][\[\e[0;1;93m\]\t\[\e[0;91m\]] \[\e[0;1;93m\]\w \[\e[0;93m\]branch:\[\e[0;1;93m\]`parse_git_branch`\[\e[0;1;93m\]|\n\[\e[0;93m\]>>> \[\e[0m\]'
-
-## Alias
-### Linux stuff
-alias cp="cp -i"                                                # Confirm before overwriting something
-alias df='df -h'                                                # Human-readable sizes
-alias free='free -m'                                            # Show sizes in MB
-alias gitu='git add . && git commit && git push'
-alias mkbuild='rm -rf build && mkdir build && cd build && ../configure --prefix=/usr --sysconfdir=/etc --disable-sanitizers && make -j4'
-alias mkinstall='sudo make install'
-alias dl='wget -r -e robots=off -nc -nd --progress=dot'
+# System aliases
+# Navigation
 alias ..='cd ..'
-alias ...='cd ../../'
-alias re='cd -'
-alias myip="curl http://ipecho.net/plain; echo"
-alias reboot='sudo reboot'
-alias poweroff='sudo poweroff'
-alias q='exit'
-alias c='clear'
-alias h='history'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias ~='cd ~'
+alias -- -='cd -'
 alias home='cd ~'
 alias root='cd /'
 
-#### This alias creates a tmux session with 3 panes and all moved to ~/CODE/ directory
-export PROJECT_DIR='~/CODE/'
-alias devenv='tmux new-session -c $(sh -c "echo $PROJECT_DIR") \; \split-window -h \; \select-pane -t 0 \; \send-keys -t 0 C-z "watch -t -n 1 ~/bin/tmuxDirUpdate.sh" Enter \; \resize-pane -L 60 \; \select-pane -t 1 \; \split-window -v \; \select-pane -t 1 \; \split-window -h \; \select-pane -t 1 \; \resize-pane -D 7 \; \select-pane -t 1 \; \resize-pane -R 14 \; \select-pane -t 1 \;'
+# Listing
+alias ls='ls --color=auto --group-directories-first'
+alias ll='ls -alFh'
+alias la='ls -A'
+alias l='ls -CF'
+alias lt='ls -alFht'               # Sort by time
+alias lsize='ls -alFhS'            # Sort by size
 
-### Git
-alias gitCommands="alias|grep git"
-alias commands=gitCommands
-alias gitconfig="$EDITOR $HOME/.gitconfig"
-alias gitrc=gitconfig
-alias gitignore="$EDITOR $HOME/.gitignore"
-alias melt="git add --all && git commit --all --no-edit --amend"
-alias resetToMaster="git fetch --all --prune && git reset --hard origin/master"
-alias undo="git reset --soft HEAD~"
-alias rebaseOnMaster="git fetch --all --prune && git rebase origin/master"
-alias renameCommit="git commit --amend"
-alias push="git push origin HEAD --force-with-lease"
-alias wip="git add --all && git commit --all --message='wip: undo me! (eg: \"git reset --soft HEAD~\")'"
-alias showBranchesByDate="git for-each-ref --sort=-committerdate refs/heads/"
-alias news="git --no-pager log --decorate --oneline origin/master..HEAD"
-alias fixupAll="git add --all && git commit --fixup "
-alias fixup="git commit --fixup "
-alias squashAll="git fetch origin && git rebase --autosquash origin/master"
-alias nukeModifications="git reset --hard && git clean -d --force"
-alias commit="git commit"
-alias commitAll="git add --all && git commit"
-alias master="git checkout master && git reset --hard origin/master"
-### Docker
-alias docker-clean='docker container prune --force'
-alias docker-clean-images='docker image prune --force --all'
+# Safety
+alias cp='cp -iv'                  # Interactive, verbose
+alias mv='mv -iv'
+alias rm='rm -Iv'                  # Prompt once before removing 3+ files
+alias ln='ln -iv'
+alias mkdir='mkdir -pv'
 
-## Color man pages
-export LESS_TERMCAP_mb=$'\E[01;32m'
-export LESS_TERMCAP_md=$'\E[01;32m'
-export LESS_TERMCAP_me=$'\E[0m'
-export LESS_TERMCAP_se=$'\E[0m'
-export LESS_TERMCAP_so=$'\E[01;47;34m'
-export LESS_TERMCAP_ue=$'\E[0m'
-export LESS_TERMCAP_us=$'\E[01;36m'
-export LESS=-R
+# System info
+alias df='df -h'
+alias free='free -h'
+alias du='du -h'
+alias ps='ps auxf'
+alias h='history'
+alias c='clear'
+alias q='exit'
 
-## Tweaks
-### Search on Arch Wiki
-#### Creates a custom command to open the search page on Arch Wiki directly in
-#### your terminal
+# Power management
+alias reboot='sudo systemctl reboot'
+alias poweroff='sudo systemctl poweroff'
+alias suspend='sudo systemctl suspend'
+
+# Networking
+alias myip='curl -s https://ipinfo.io/ip'
+alias myipv4='curl -s https://api.ipify.org'
+alias ports='netstat -tulanp'
+
+# Disk usage
+alias duh='du -h --max-depth=1 | sort -hr'
+
+# Git aliases
+alias g='git'
+alias gs='git status'
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gca='git commit --amend'
+alias gcan='git commit --amend --no-edit'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gpl='git pull'
+alias gf='git fetch'
+alias gfa='git fetch --all --prune'
+alias gl='git log --oneline --graph --decorate'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gb='git branch'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gm='git merge'
+alias gr='git rebase'
+alias gri='git rebase -i'
+alias gst='git stash'
+alias gstp='git stash pop'
+
+# Advanced git aliases
+alias wip='git add --all && git commit -m "WIP: work in progress"'
+alias unwip='git reset --soft HEAD~'
+alias undo='git reset --soft HEAD~'
+alias melt='git add --all && git commit --amend --no-edit'
+alias nuke='git reset --hard && git clean -fd'
+alias master='git checkout master && git pull origin master'
+alias main='git checkout main && git pull origin main'
+alias branches='git branch -a'
+alias news='git log --oneline --decorate origin/master..HEAD'
+
+# Docker aliases
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias di='docker images'
+alias drm='docker rm'
+alias drmi='docker rmi'
+alias dclean='docker system prune -f'
+alias dcleanall='docker system prune -af --volumes'
+
+# Development aliases
+export PROJECT_DIR="$HOME/CODE"
+alias code='cd $PROJECT_DIR'
+alias dl='wget -r -e robots=off -nc -nd --progress=dot'
+
+# Python
+alias py='python3'
+alias venv='python3 -m venv'
+alias activate='source venv/bin/activate'
+
+# Node/NPM
+alias ni='npm install'
+alias nid='npm install --save-dev'
+alias nr='npm run'
+alias ns='npm start'
+alias nt='npm test'
+
+# Functions
+# Create directory and cd into it
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Extract various archive formats
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"    ;;
+            *.tar.gz)    tar xzf "$1"    ;;
+            *.bz2)       bunzip2 "$1"    ;;
+            *.rar)       unrar x "$1"    ;;
+            *.gz)        gunzip "$1"     ;;
+            *.tar)       tar xf "$1"     ;;
+            *.tbz2)      tar xjf "$1"    ;;
+            *.tgz)       tar xzf "$1"    ;;
+            *.zip)       unzip "$1"      ;;
+            *.Z)         uncompress "$1" ;;
+            *.7z)        7z x "$1"       ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Search in history
+hgrep() {
+    history | grep "$@"
+}
+
+# Find files by name
+ff() {
+    find . -type f -iname "*$1*"
+}
+
+# Find directories by name
+fd() {
+    find . -type d -iname "*$1*"
+}
+
+# Web search functions
 wiki() {
-    links https://wiki.archlinux.org/index.php?search=
+    local query="${*:-}"
+    if [ -n "$query" ]; then
+        links "https://wiki.archlinux.org/index.php?search=$query"
+    else
+        links "https://wiki.archlinux.org/"
+    fi
 }
-### Same as before but DuckDuckGo search
+
 ddg() {
-    links https://duckduckgo.com/?q=
+    local query="${*:-}"
+    if [ -n "$query" ]; then
+        links "https://duckduckgo.com/?q=$query"
+    else
+        links "https://duckduckgo.com/"
+    fi
 }
+
+# Show largest files/directories
+largest() {
+    du -ah "${1:-.}" | sort -rh | head -n "${2:-20}"
+}
+
+# Weather report
+weather() {
+    curl -s "wttr.in/${1:-}"
+}
+
+# Completion
+if ! shopt -oq posix; then
+    if [ -f /usr/share/bash-completion/bash_completion ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f /etc/bash_completion ]; then
+        . /etc/bash_completion
+    fi
+fi
+
+# External sources
+# Source additional configurations if they exist
+[ -f ~/.bash_aliases ] && . ~/.bash_aliases
+[ -f ~/.bash_local ] && . ~/.bash_local
+[ -f ~/.bash_functions ] && . ~/.bash_functions
+
+# Welcome message (optional)
+# Uncomment to show system info on login
+# if command -v neofetch &> /dev/null; then
+#     neofetch
+# fi

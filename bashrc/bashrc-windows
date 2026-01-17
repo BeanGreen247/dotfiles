@@ -1,0 +1,330 @@
+# ~/.bashrc: executed by bash(1) for non-login shells (Windows Git Bash optimized)
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# Shell options (minimal set for Windows compatibility)
+shopt -s histappend
+shopt -s checkwinsize
+shopt -s cdspell
+shopt -s cmdhist
+
+# History configuration (reduced for performance)
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+HISTIGNORE="ls:ll:la:cd:pwd:exit:clear:history:cls"
+HISTTIMEFORMAT="%F %T "
+
+# Environment variables
+export EDITOR=vim
+export VISUAL=vim
+export PAGER=less
+export LESS='-R -i -M -W -q'
+
+# Color support for less (man pages)
+export LESS_TERMCAP_mb=$'\E[1;32m'
+export LESS_TERMCAP_md=$'\E[1;32m'
+export LESS_TERMCAP_me=$'\E[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[01;47;34m'
+export LESS_TERMCAP_ue=$'\E[0m'
+export LESS_TERMCAP_us=$'\E[1;36m'
+
+# Prompt configuration (Windows optimized - cached system stats)
+timer_start_time=0
+timer_show=""
+last_exit_code=0
+cpu_usage="N/A"
+mem_usage="N/A"
+status_color=""
+git_info=""
+stats_counter=0
+STATS_UPDATE_INTERVAL=1
+
+function timer_start {
+    timer_start_time=$(($(date +%s) * 1000))
+}
+
+function timer_stop {
+    last_exit_code=$?
+    local end_time=$(($(date +%s) * 1000))
+    local elapsed=$((end_time - timer_start_time))
+    
+    # Set status color based on exit code
+    if [ $last_exit_code -eq 0 ]; then
+        status_color="32"
+    elif [ $last_exit_code -eq 130 ]; then
+        status_color="33"
+    else
+        status_color="31"
+    fi
+    
+    # Format time (simplified for speed)
+    if [ $elapsed -lt 1000 ]; then
+        timer_show="${elapsed}ms"
+    elif [ $elapsed -lt 60000 ]; then
+        timer_show="$((elapsed / 1000))s"
+    else
+        local minutes=$((elapsed / 60000))
+        local seconds=$(((elapsed % 60000) / 1000))
+        timer_show="${minutes}m${seconds}s"
+    fi
+}
+
+# Get system stats (Windows only, cached)
+function get_system_stats {
+    # Only update stats every N prompts to reduce overhead
+    stats_counter=$((stats_counter + 1))
+    if [ $stats_counter -ge $STATS_UPDATE_INTERVAL ]; then
+        stats_counter=0
+        
+        # CPU usage (simplified Windows query)
+        if command -v wmic.exe &> /dev/null; then
+            local cpu_raw=$(wmic.exe cpu get loadpercentage 2>/dev/null | sed -n '2p' | tr -d ' \r\n' 2>/dev/null)
+            [ -n "$cpu_raw" ] && cpu_usage="${cpu_raw}%" || cpu_usage="N/A"
+        fi
+        
+        # Memory usage in MB (simplified Windows query)
+        if command -v wmic.exe &> /dev/null; then
+            local mem_data=$(wmic.exe OS get FreePhysicalMemory,TotalVisibleMemorySize /format:value 2>/dev/null | tr -d '\r')
+            local total=$(echo "$mem_data" | grep "^TotalVisibleMemorySize=" | cut -d= -f2)
+            local free=$(echo "$mem_data" | grep "^FreePhysicalMemory=" | cut -d= -f2)
+            
+            if [ -n "$total" ] && [ -n "$free" ] && [ "$total" -gt 0 ]; then
+                local used=$(( (total - free) / 1024 ))
+                mem_usage="${used}M"
+            else
+                mem_usage="N/A"
+            fi
+        fi
+    fi
+    
+    # Git info (lightweight check)
+    git_info=""
+    if [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1; then
+        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+        if [ -n "$branch" ]; then
+            # Skip dirty check on Windows by default (slow), only check if explicitly needed
+            if [ -z "$BASHRC_SKIP_GIT_DIRTY" ]; then
+                local dirty=""
+                git diff --quiet 2>/dev/null || dirty="*"
+                git diff --cached --quiet 2>/dev/null || dirty="*"
+                git_info=" git:${branch}${dirty}"
+            else
+                git_info=" git:${branch}"
+            fi
+        fi
+    fi
+}
+
+trap 'timer_start' DEBUG
+
+# Build prompt (optimized for Windows)
+build_prompt() {
+    local status_text
+    if [ $last_exit_code -eq 0 ]; then
+        status_text="0"
+    elif [ $last_exit_code -eq 130 ]; then
+        status_text="INT"
+    else
+        status_text="$last_exit_code"
+    fi
+    
+    PS1='\[\e[0;90m\][\[\e[0m\]'
+    PS1+="\[\e[0;${status_color}m\]${status_text}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;36m\]${timer_show}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;35m\]${cpu_usage}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]|\[\e[0m\]'
+    PS1+="\[\e[0;33m\]${mem_usage}\[\e[0m\]"
+    PS1+='\[\e[0;90m\]]\[\e[0m\] '
+    PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] '
+    PS1+='\[\e[0;37m\]\w\[\e[0m\]'
+    
+    if [ -n "$git_info" ]; then
+        PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
+    fi
+    
+    PS1+='\n\[\e[0;90m\]$\[\e[0m\] '
+    
+    case "$TERM" in
+    xterm*|rxvt*)
+        PS1="\[\e]0;\u@\h: \w\a\]$PS1"
+        ;;
+    esac
+}
+
+PROMPT_COMMAND="timer_stop; get_system_stats; build_prompt"
+
+# Bash inline autosuggestions (Windows optimized)
+
+# Enable better readline behavior
+bind 'set show-all-if-ambiguous on'
+bind 'set completion-ignore-case on'
+bind 'set colored-stats on'
+bind 'set visible-stats on'
+bind 'set mark-symlinked-directories on'
+bind 'set colored-completion-prefix on'
+bind 'set menu-complete-display-prefix on'
+
+# Bind arrow keys for prefix-based history search
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
+# Bind Right arrow and Ctrl+F to move forward (accepting suggestions)
+bind '"\e[C": forward-char'
+bind '"\C-f": forward-word'
+bind '"\e[F": end-of-line'  # End key
+
+# Use fzf for Ctrl+R if available
+if command -v fzf &> /dev/null || command -v fzf.exe &> /dev/null; then
+    FZF_CMD=$(command -v fzf 2>/dev/null || command -v fzf.exe 2>/dev/null)
+    
+    bind '"\C-r": "\C-x\C-r"'
+    bind -x '"\C-x\C-r": __fzf_history'
+    
+    __fzf_history() {
+        local selected
+        selected=$(
+            HISTTIMEFORMAT= history | 
+            "$FZF_CMD" --tac --no-sort --height 40% --reverse \
+                --query "$READLINE_LINE" \
+                --preview 'echo {}' --preview-window down:3:wrap | 
+            sed 's/^[ ]*[0-9]*[ ]*//'
+        )
+        if [ -n "$selected" ]; then
+            READLINE_LINE="$selected"
+            READLINE_POINT=${#READLINE_LINE}
+        fi
+    }
+fi
+
+# Colors & tools
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+fi
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+# System aliases (Windows-friendly)
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias home='cd ~'
+alias -- -='cd -'
+
+# Listing
+alias ll='ls -alFh'
+alias la='ls -A'
+alias l='ls -CF'
+alias lt='ls -alFht'
+alias lsize='ls -alFhS'
+
+# Safety
+alias cp='cp -i'
+alias mv='mv -i'
+alias rm='rm -I'
+alias mkdir='mkdir -p'
+
+# System info
+alias h='history'
+alias c='clear'
+alias cls='clear'
+alias q='exit'
+
+# Windows-specific
+alias open='start'
+alias explorer='explorer.exe'
+alias notepad='notepad.exe'
+
+# Networking
+alias myip='curl -s https://ipinfo.io/ip'
+alias ports='netstat -an'
+
+# Git aliases (essential only)
+alias g='git'
+alias gs='git status -sb'  # Short format, faster
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gca='git commit --amend'
+alias gcan='git commit --amend --no-edit'
+alias gp='git push'
+alias gpf='git push --force-with-lease'
+alias gpl='git pull'
+alias gf='git fetch'
+alias gl='git log --oneline --graph --decorate -10'  # Limit to 10 for speed
+alias gd='git diff'
+alias gb='git branch'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+
+# Advanced git aliases
+alias wip='git add --all && git commit -m "WIP: work in progress"'
+alias undo='git reset --soft HEAD~'
+alias melt='git add --all && git commit --amend --no-edit'
+alias nuke='git reset --hard && git clean -fd'
+
+# Docker aliases
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias di='docker images'
+
+# Development aliases
+export PROJECT_DIR="$HOME/code"
+alias code='cd $PROJECT_DIR'
+
+# Python
+alias py='python'
+alias py3='python3'
+alias venv='python -m venv'
+
+# Node/NPM
+alias ni='npm install'
+alias nr='npm run'
+alias ns='npm start'
+
+# Functions (essential only)
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Simple extract without full validation (faster)
+extract() {
+    case "$1" in
+        *.tar.gz|*.tgz) tar xzf "$1" ;;
+        *.tar.bz2|*.tbz2) tar xjf "$1" ;;
+        *.zip) unzip "$1" ;;
+        *.7z) 7z x "$1" ;;
+        *) echo "Unsupported format: $1" ;;
+    esac
+}
+
+# Search in history (optimized)
+hgrep() {
+    history | grep -i "$@"
+}
+
+# Completion (lightweight)
+if [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+
+# External sources
+[ -f ~/.bash_aliases ] && . ~/.bash_aliases
+[ -f ~/.bash_local ] && . ~/.bash_local
+
+# Performance tip: Set this variable to skip git dirty check for faster prompts
+# export BASHRC_SKIP_GIT_DIRTY=1
+
+# Windows Git Bash specific optimizations
+export MSYS=winsymlinks:nativestrict
+export CYGWIN=winsymlinks:nativestrict

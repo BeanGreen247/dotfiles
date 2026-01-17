@@ -1,0 +1,207 @@
+" ~/.vimrc: Raspberry Pi optimized Vim configuration
+" Lightweight but feature-rich for embedded systems
+
+" Compatibility & Encoding
+set nocompatible
+set encoding=utf-8
+filetype plugin indent on
+syntax enable
+
+" Performance optimizations for RPi
+set shell=bash
+set lazyredraw               " Don't redraw during macros
+set ttyfast                  " Faster terminal connection
+set noshowmatch              " Don't jump to matching bracket
+set synmaxcol=200            " Only syntax highlight first 200 columns
+
+" General Settings
+set mouse=a                  " Enable mouse support
+set clipboard=unnamedplus    " Use system clipboard
+set backspace=indent,eol,start
+set history=500              " Reduced for memory
+set undofile                 " Persistent undo
+set undodir=~/.vim/undo
+set nobackup                 " Disabled - RPi SD card wear
+set nowritebackup
+set noswapfile               " Disabled - RPi SD card wear
+set updatetime=500           " Balanced for performance
+set timeoutlen=500
+
+" Create undo directory if it doesn't exist
+if !isdirectory(expand(&undodir))
+    call mkdir(expand(&undodir), "p")
+endif
+
+" UI & Appearance
+set number                   " Line numbers (nu)
+set relativenumber           " Relative line numbers
+set cursorline               " Highlight current line
+set cursorlineopt=number     " Only highlight line number
+set showcmd                  " Show command
+set ruler                    " Show cursor position
+set laststatus=2             " Always show status line
+set signcolumn=no            " No sign column (save space)
+set scrolloff=5              " Reduced for small screens
+set sidescrolloff=5
+set list                     " Show invisible characters
+set listchars=tab:→\ ,trail:·,nbsp:␣
+
+" Colors (optimized for terminals)
+if has('termguicolors')
+    set termguicolors
+endif
+set background=dark
+colorscheme desert
+
+" Custom highlights
+highlight CursorLine cterm=underline gui=underline ctermbg=NONE guibg=NONE
+highlight CursorLineNr cterm=bold gui=bold ctermfg=Yellow guifg=Yellow
+
+" Search Settings
+set hlsearch                 " Highlight search
+set incsearch                " Incremental search
+set ignorecase
+set smartcase                " Smart case matching
+set wrapscan
+
+" Indentation & Formatting
+set autoindent
+set smartindent
+set expandtab                " Use spaces
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set shiftround
+
+" Code Folding (disabled for performance)
+set nofoldenable
+
+" Completion & Wildmenu
+set wildmenu
+set wildmode=longest:full,full
+set wildignore+=*.o,*.pyc,*.class,*.swp
+set completeopt=menuone,preview
+
+" Error bells
+set noerrorbells
+set novisualbell
+set t_vb=
+set tm=500
+
+" Splits
+set splitbelow
+set splitright
+set termwinsize=10x0
+
+" Key Mappings
+let mapleader = " "
+
+" Quick save & quit
+nnoremap <leader>w :w<CR>
+nnoremap <leader>q :q<CR>
+nnoremap <leader>x :x<CR>
+nnoremap <leader>Q :qa!<CR>
+
+" Clear search
+nnoremap <leader><space> :nohlsearch<CR>
+
+" Window navigation
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Window resizing
+nnoremap <leader>= <C-w>=
+nnoremap <leader>+ :resize +5<CR>
+nnoremap <leader>- :resize -5<CR>
+
+" Buffer navigation
+nnoremap <leader>bn :bnext<CR>
+nnoremap <leader>bp :bprevious<CR>
+nnoremap <leader>bd :bdelete<CR>
+nnoremap <leader>bl :buffers<CR>
+
+" Tab navigation
+nnoremap <leader>tn :tabnew<CR>
+nnoremap <leader>tc :tabclose<CR>
+nnoremap <leader>1 1gt
+nnoremap <leader>2 2gt
+nnoremap <leader>3 3gt
+
+" Move lines up/down
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
+
+" Visual mode improvements
+vnoremap < <gv
+vnoremap > >gv
+vnoremap p "_dP
+
+" Better Y behavior
+nnoremap Y y$
+
+" Text objects for brackets
+xnoremap ib i(
+xnoremap iB i{
+xnoremap is i[
+xnoremap ab a(
+xnoremap aB a{
+xnoremap as a[
+
+" File explorer (netrw)
+nnoremap <leader>n :Explore<CR>
+nnoremap <leader>f :Explore %:p:h<CR>
+
+" Netrw settings (lightweight file browser)
+let g:netrw_banner=0
+let g:netrw_liststyle=3
+let g:netrw_browse_split=4
+let g:netrw_altv=1
+let g:netrw_winsize=25
+let g:netrw_keepdir=0
+
+" Language-Specific Settings
+autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=4
+autocmd FileType javascript,html,css,json setlocal expandtab shiftwidth=2 tabstop=2
+autocmd FileType sh,bash setlocal expandtab shiftwidth=2 tabstop=2
+autocmd FileType markdown setlocal wrap linebreak nolist
+
+" Auto Commands
+" Return to last position
+autocmd BufReadPost *
+    \ if line("'\"") > 0 && line("'\"") <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif
+
+" Trim trailing whitespace (light on SD card)
+autocmd BufWritePre *.py,*.sh,*.js,*.css,*.html %s/\s\+$//e
+
+" Custom Commands
+command! Vimrc :e $MYVIMRC
+command! Source :source $MYVIMRC
+
+" Lightweight status line
+set statusline=%f\ %m%r%h%w
+set statusline+=%=
+set statusline+=%y\ 
+set statusline+=%l:%c\ %p%%
+
+" RPi-specific optimizations
+" Reduce file system operations for SD card longevity
+set viminfo='20,<50,s10,h
+set updatecount=100          " Write swap every 100 chars (we disabled swap, but good to know)
+
+" Fast grep alternative for RPi
+if executable('ag')
+    set grepprg=ag\ --nogroup\ --nocolor
+elseif executable('rg')
+    set grepprg=rg\ --vimgrep\ --no-heading
+endif
+
+" Local configuration
+if filereadable(expand("~/.vimrc.local"))
+    source ~/.vimrc.local
+endif
