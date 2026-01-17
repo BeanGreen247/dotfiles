@@ -43,7 +43,7 @@ mem_usage="N/A"
 status_color=""
 git_info=""
 stats_counter=0
-STATS_UPDATE_INTERVAL=1
+STATS_UPDATE_INTERVAL=5
 
 function timer_start {
     timer_start_time=$(($(date +%s) * 1000))
