@@ -34,12 +34,10 @@ export LESS_TERMCAP_so=$'\E[01;47;34m'
 export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[1;36m'
 
-# Prompt configuration (Windows optimized - cached system stats)
+# Prompt configuration (Windows optimized)
 timer_start_time=0
 timer_show=""
 last_exit_code=0
-cpu_usage="N/A"
-mem_usage="N/A"
 status_color=""
 git_info=""
 stats_counter=0
@@ -53,7 +51,7 @@ function timer_stop {
     last_exit_code=$?
     local end_time=$(($(date +%s) * 1000))
     local elapsed=$((end_time - timer_start_time))
-    
+
     # Set status color based on exit code
     if [ $last_exit_code -eq 0 ]; then
         status_color="32"
@@ -62,7 +60,7 @@ function timer_stop {
     else
         status_color="31"
     fi
-    
+
     # Format time (simplified for speed)
     if [ $elapsed -lt 1000 ]; then
         timer_show="${elapsed}ms"
@@ -75,34 +73,8 @@ function timer_stop {
     fi
 }
 
-# Get system stats (Windows only, cached)
+# Get system stats
 function get_system_stats {
-    # Only update stats every N prompts to reduce overhead
-    stats_counter=$((stats_counter + 1))
-    if [ $stats_counter -ge $STATS_UPDATE_INTERVAL ]; then
-        stats_counter=0
-        
-        # CPU usage (simplified Windows query)
-        if command -v wmic.exe &> /dev/null; then
-            local cpu_raw=$(wmic.exe cpu get loadpercentage 2>/dev/null | sed -n '2p' | tr -d ' \r\n' 2>/dev/null)
-            [ -n "$cpu_raw" ] && cpu_usage="${cpu_raw}%" || cpu_usage="N/A"
-        fi
-        
-        # Memory usage in MB (simplified Windows query)
-        if command -v wmic.exe &> /dev/null; then
-            local mem_data=$(wmic.exe OS get FreePhysicalMemory,TotalVisibleMemorySize /format:value 2>/dev/null | tr -d '\r')
-            local total=$(echo "$mem_data" | grep "^TotalVisibleMemorySize=" | cut -d= -f2)
-            local free=$(echo "$mem_data" | grep "^FreePhysicalMemory=" | cut -d= -f2)
-            
-            if [ -n "$total" ] && [ -n "$free" ] && [ "$total" -gt 0 ]; then
-                local used=$(( (total - free) / 1024 ))
-                mem_usage="${used}M"
-            else
-                mem_usage="N/A"
-            fi
-        fi
-    fi
-    
     # Git info (lightweight check)
     git_info=""
     if [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1; then
@@ -133,25 +105,21 @@ build_prompt() {
     else
         status_text="$last_exit_code"
     fi
-    
+
     PS1='\[\e[0;90m\][\[\e[0m\]'
     PS1+="\[\e[0;${status_color}m\]${status_text}\[\e[0m\]"
     PS1+='\[\e[0;90m\]|\[\e[0m\]'
     PS1+="\[\e[0;36m\]${timer_show}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]|\[\e[0m\]'
-    PS1+="\[\e[0;35m\]${cpu_usage}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]|\[\e[0m\]'
-    PS1+="\[\e[0;33m\]${mem_usage}\[\e[0m\]"
     PS1+='\[\e[0;90m\]]\[\e[0m\] '
     PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] '
     PS1+='\[\e[0;37m\]\w\[\e[0m\]'
-    
+
     if [ -n "$git_info" ]; then
         PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
     fi
-    
+
     PS1+='\n\[\e[0;90m\]$\[\e[0m\] '
-    
+
     case "$TERM" in
     xterm*|rxvt*)
         PS1="\[\e]0;\u@\h: \w\a\]$PS1"
@@ -184,17 +152,17 @@ bind '"\e[F": end-of-line'  # End key
 # Use fzf for Ctrl+R if available
 if command -v fzf &> /dev/null || command -v fzf.exe &> /dev/null; then
     FZF_CMD=$(command -v fzf 2>/dev/null || command -v fzf.exe 2>/dev/null)
-    
+
     bind '"\C-r": "\C-x\C-r"'
     bind -x '"\C-x\C-r": __fzf_history'
-    
+
     __fzf_history() {
         local selected
         selected=$(
-            HISTTIMEFORMAT= history | 
+            HISTTIMEFORMAT= history |
             "$FZF_CMD" --tac --no-sort --height 40% --reverse \
                 --query "$READLINE_LINE" \
-                --preview 'echo {}' --preview-window down:3:wrap | 
+                --preview 'echo {}' --preview-window down:3:wrap |
             sed 's/^[ ]*[0-9]*[ ]*//'
         )
         if [ -n "$selected" ]; then
