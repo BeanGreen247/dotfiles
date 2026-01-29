@@ -41,8 +41,6 @@ export LESS_TERMCAP_us=$'\E[1;36m'
 timer_start_time=0
 timer_show=""
 last_exit_code=0
-cpu_usage=""
-mem_usage=""
 status_color=""
 git_info=""
 STATS_UPDATE_INTERVAL=1
@@ -78,71 +76,7 @@ function timer_stop {
 }
 
 # Get system stats (cross-platform, optimized)
-function get_system_stats {
-    # CPU usage
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        if command -v top &> /dev/null; then
-            cpu_usage=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}' 2>/dev/null || echo "N/A")
-        else
-            cpu_usage="N/A"
-        fi
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        cpu_usage=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%.1f%%", s}' 2>/dev/null || echo "N/A")
-    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$(uname -s)" == MINGW* ]]; then
-        if command -v wmic.exe &> /dev/null; then
-            cpu_usage=$(wmic.exe cpu get loadpercentage 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
-            [ -n "$cpu_usage" ] && cpu_usage="${cpu_usage}%" || cpu_usage="N/A"
-        else
-            cpu_usage="N/A"
-        fi
-    else
-        cpu_usage="N/A"
-    fi
-    
-    # Memory usage in MB
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        if [ -f /proc/meminfo ]; then
-            local total=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null)
-            local available=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null)
-            if [ -n "$total" ] && [ -n "$available" ]; then
-                local used=$((($total - $available) / 1024))
-                mem_usage="${used}M"
-            else
-                mem_usage="N/A"
-            fi
-        else
-            mem_usage="N/A"
-        fi
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        if command -v vm_stat &> /dev/null; then
-            local pages_active=$(vm_stat | awk '/Pages active/ {gsub(/\./, "", $3); print $3}')
-            local pages_wired=$(vm_stat | awk '/Pages wired/ {gsub(/\./, "", $4); print $4}')
-            if [ -n "$pages_active" ] && [ -n "$pages_wired" ]; then
-                local used=$((($pages_active + $pages_wired) * 4096 / 1024 / 1024))
-                mem_usage="${used}M"
-            else
-                mem_usage="N/A"
-            fi
-        else
-            mem_usage="N/A"
-        fi
-    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$(uname -s)" == MINGW* ]]; then
-        if command -v wmic.exe &> /dev/null; then
-            local total=$(wmic.exe OS get TotalVisibleMemorySize 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
-            local free=$(wmic.exe OS get FreePhysicalMemory 2>/dev/null | sed -n '2p' | tr -d ' \r\n')
-            if [ -n "$total" ] && [ -n "$free" ]; then
-                local used=$(( (total - free) / 1024 ))
-                mem_usage="${used}M"
-            else
-                mem_usage="N/A"
-            fi
-        else
-            mem_usage="N/A"
-        fi
-    else
-        mem_usage="N/A"
-    fi
-    
+function get_system_stats {    
     # Git info - build once per prompt
     git_info=""
     if git rev-parse --git-dir > /dev/null 2>&1; then
@@ -170,10 +104,6 @@ build_prompt() {
     PS1+="\[\e[0;${status_color}m\]${status_text}\[\e[0m\]"
     PS1+='\[\e[0;90m\]|\[\e[0m\]'
     PS1+="\[\e[0;36m\]${timer_show}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]|\[\e[0m\]'
-    PS1+="\[\e[0;35m\]${cpu_usage}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]|\[\e[0m\]'
-    PS1+="\[\e[0;33m\]${mem_usage}\[\e[0m\]"
     PS1+='\[\e[0;90m\]]\[\e[0m\] '
     PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] '
     PS1+='\[\e[0;37m\]\w\[\e[0m\]'
