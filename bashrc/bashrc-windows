@@ -1,4 +1,10 @@
-# ~/.bashrc: executed by bash(1) for non-login shells (Windows Git Bash optimized)
+# ~/.bash_profile: executed by bash(1) for login shells (Windows Git Bash)
+# 
+# IMPORTANT: On Windows Git Bash, this file should be placed as ~/.bash_profile
+# Git Bash on Windows sources .bash_profile for login shells, not .bashrc
+# To install: copy this file to C:\Users\<username>\.bash_profile
+#
+# This configuration is optimized for Windows Git Bash performance
 
 # If not running interactively, don't do anything
 case $- in
@@ -34,102 +40,109 @@ export LESS_TERMCAP_so=$'\E[01;47;34m'
 export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[1;36m'
 
-# Prompt configuration (Windows optimized)
-timer_start_time=0
-timer_show=""
-last_exit_code=0
-status_color=""
+# Prompt configuration (Windows optimized with performance enhancements)
+timer_start=""
+timer_show="0ms"
 git_info=""
-stats_counter=0
-STATS_UPDATE_INTERVAL=5
+_prompt_executing=""
 
-function timer_start {
-    timer_start_time=$(($(date +%s) * 1000))
+function preexec() {
+    # Only start timer for actual user commands (not empty or PROMPT_COMMAND)
+    if [ -z "$_prompt_executing" ] && [ -n "$BASH_COMMAND" ] && [ "$BASH_COMMAND" != "$PROMPT_COMMAND" ]; then
+        timer_start=$(date +%s%N)
+        _prompt_executing=1
+    fi
 }
 
 function timer_stop {
-    last_exit_code=$?
-    local end_time=$(($(date +%s) * 1000))
-    local elapsed=$((end_time - timer_start_time))
-
-    # Set status color based on exit code
-    if [ $last_exit_code -eq 0 ]; then
-        status_color="32"
-    elif [ $last_exit_code -eq 130 ]; then
-        status_color="33"
-    else
-        status_color="31"
-    fi
-
-    # Format time (simplified for speed)
-    if [ $elapsed -lt 1000 ]; then
-        timer_show="${elapsed}ms"
-    elif [ $elapsed -lt 60000 ]; then
-        timer_show="$((elapsed / 1000))s"
-    else
-        local minutes=$((elapsed / 60000))
-        local seconds=$(((elapsed % 60000) / 1000))
-        timer_show="${minutes}m${seconds}s"
-    fi
-}
-
-# Get system stats
-function get_system_stats {
-    # Git info (lightweight check)
-    git_info=""
-    if [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1; then
-        local branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
-        if [ -n "$branch" ]; then
-            # Skip dirty check on Windows by default (slow), only check if explicitly needed
-            if [ -z "$BASHRC_SKIP_GIT_DIRTY" ]; then
-                local dirty=""
-                git diff --quiet 2>/dev/null || dirty="*"
-                git diff --cached --quiet 2>/dev/null || dirty="*"
-                git_info=" git:${branch}${dirty}"
+    # Update timer only if we were executing a command
+    if [ -n "$_prompt_executing" ]; then
+        _prompt_executing=""
+        
+        # Calculate execution time in milliseconds
+        if [ -n "$timer_start" ]; then
+            local timer_end=$(date +%s%N)
+            local elapsed=$(( (timer_end - timer_start) / 1000000 ))
+            
+            if [ $elapsed -ge 3600000 ]; then
+                local hours=$((elapsed / 3600000))
+                local mins=$(( (elapsed % 3600000) / 60000 ))
+                local secs=$(( (elapsed % 60000) / 1000 ))
+                timer_show=$(printf "%dh%dm%ds" $hours $mins $secs)
+            elif [ $elapsed -ge 60000 ]; then
+                local mins=$((elapsed / 60000))
+                local secs=$(( (elapsed % 60000) / 1000 ))
+                timer_show=$(printf "%dm%ds" $mins $secs)
+            elif [ $elapsed -ge 1000 ]; then
+                local secs=$((elapsed / 1000))
+                local ms=$((elapsed % 1000))
+                timer_show=$(printf "%d.%01ds" $secs $((ms / 100)))
             else
-                git_info=" git:${branch}"
+                timer_show="${elapsed}ms"
             fi
+            unset timer_start
         fi
     fi
 }
 
-trap 'timer_start' DEBUG
-
-# Build prompt (optimized for Windows)
-build_prompt() {
-    local status_text
-    if [ $last_exit_code -eq 0 ]; then
-        status_text="0"
-    elif [ $last_exit_code -eq 130 ]; then
-        status_text="INT"
-    else
-        status_text="$last_exit_code"
+# Get system stats (uses fast Git branch detection)
+function get_system_stats {
+    git_info=""
+    
+    # Fast Git branch detection optimized for Windows
+    local headfile head branch
+    local dir="$PWD"
+    
+    while [ -n "$dir" ]; do
+        if [ -e "$dir/.git/HEAD" ]; then
+            headfile="$dir/.git/HEAD"
+            break
+        fi
+        dir="${dir%/*}"
+    done
+    
+    if [ -e "$headfile" ]; then
+        read -r head < "$headfile" || return
+        case "$head" in
+            ref:*) branch="${head##*/}" ;;
+            "") branch="" ;;
+            *) branch="${head:0:7}" ;;  # Detached HEAD
+        esac
     fi
-
-    PS1='\[\e[0;90m\][\[\e[0m\]'
-    PS1+="\[\e[0;${status_color}m\]${status_text}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]|\[\e[0m\]'
-    PS1+="\[\e[0;36m\]${timer_show}\[\e[0m\]"
-    PS1+='\[\e[0;90m\]]\[\e[0m\] '
-    PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] '
-    PS1+='\[\e[0;37m\]\w\[\e[0m\]'
-
-    if [ -n "$git_info" ]; then
-        PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
+    
+    if [ ! -z "$branch" ]; then
+        # Optional dirty check (set BASHRC_SKIP_GIT_DIRTY=1 for max speed)
+        if [ -z "$BASHRC_SKIP_GIT_DIRTY" ]; then
+            local dirty=""
+            git diff --quiet 2>/dev/null || dirty="*"
+            git diff --cached --quiet 2>/dev/null || dirty+="+" 
+            git_info=" git:($branch${dirty})"
+        else
+            git_info=" git:($branch)"
+        fi
     fi
-
-    PS1+='\n\[\e[0;90m\]$\[\e[0m\] '
-
-    case "$TERM" in
-    xterm*|rxvt*)
-        PS1="\[\e]0;\u@\h: \w\a\]$PS1"
-        ;;
-    esac
 }
 
+# Build prompt (optimized for Windows Git Bash)
+build_prompt() {
+    PS1='\[\e[0;90m\]['
+    
+    # Show timer
+    PS1+='\[\e[0;37m\]'"${timer_show}"
+    
+    PS1+='\[\e[0;90m\]]\[\e[0m\] '
+    PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] \[\e[0;37m\]\w\[\e[0m\]'
+    
+    [ -n "$git_info" ] && PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
+    PS1+='\n\[\e[0;90m\]$ \[\e[0m\]'
+    
+    [ "$TERM" = "xterm" ] && PS1="\[\e]0;\u@\h: \w\a\]$PS1"
+}
+
+trap 'preexec' DEBUG
 PROMPT_COMMAND="timer_stop; get_system_stats; build_prompt"
 
-# Bash inline autosuggestions (Windows optimized)
+# Bash inline autosuggestions (Windows optimized with readline enhancements)
 
 # Enable better readline behavior
 bind 'set show-all-if-ambiguous on'
@@ -149,7 +162,7 @@ bind '"\e[C": forward-char'
 bind '"\C-f": forward-word'
 bind '"\e[F": end-of-line'  # End key
 
-# Use fzf for Ctrl+R if available
+# Use fzf for Ctrl+R if available (fuzzy history search)
 if command -v fzf &> /dev/null || command -v fzf.exe &> /dev/null; then
     FZF_CMD=$(command -v fzf 2>/dev/null || command -v fzf.exe 2>/dev/null)
 
@@ -172,49 +185,49 @@ if command -v fzf &> /dev/null || command -v fzf.exe &> /dev/null; then
     }
 fi
 
-# Colors & tools
+# Colors & tools (enable colored output)
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 
-# System aliases (Windows-friendly)
+# System aliases (Windows-friendly navigation)
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias home='cd ~'
 alias -- -='cd -'
 
-# Listing
+# Listing aliases (enhanced file viewing)
 alias ll='ls -alFh'
 alias la='ls -A'
 alias l='ls -CF'
 alias lt='ls -alFht'
 alias lsize='ls -alFhS'
 
-# Safety
+# Safety aliases (prevent accidental file operations)
 alias cp='cp -i'
 alias mv='mv -i'
 alias rm='rm -I'
 alias mkdir='mkdir -p'
 
-# System info
+# System info aliases
 alias h='history'
 alias c='clear'
 alias cls='clear'
 alias q='exit'
 
-# Windows-specific
+# Windows-specific aliases (native Windows commands)
 alias open='start'
 alias explorer='explorer.exe'
 alias notepad='notepad.exe'
 
-# Networking
+# Networking aliases
 alias myip='curl -s https://ipinfo.io/ip'
 alias ports='netstat -an'
 
-# Git aliases (essential only)
+# Git aliases (essential commands for fast Git workflow)
 alias g='git'
 alias gs='git status -sb'  # Short format, faster
 alias ga='git add'
@@ -233,39 +246,41 @@ alias gb='git branch'
 alias gco='git checkout'
 alias gcb='git checkout -b'
 
-# Advanced git aliases
+# Advanced git aliases (workflow shortcuts)
 alias wip='git add --all && git commit -m "WIP: work in progress"'
 alias undo='git reset --soft HEAD~'
 alias melt='git add --all && git commit --amend --no-edit'
 alias nuke='git reset --hard && git clean -fd'
 
-# Docker aliases
+# Docker aliases (container management)
 alias d='docker'
 alias dc='docker compose'
 alias dps='docker ps'
 alias dpsa='docker ps -a'
 alias di='docker images'
 
-# Development aliases
+# Development aliases (project navigation)
 export PROJECT_DIR="$HOME/code"
 alias code='cd $PROJECT_DIR'
 
-# Python
+# Python aliases (Python development shortcuts)
 alias py='python'
 alias py3='python3'
 alias venv='python -m venv'
 
-# Node/NPM
+# Node/NPM aliases (Node.js development shortcuts)
 alias ni='npm install'
 alias nr='npm run'
 alias ns='npm start'
 
-# Functions (essential only)
+# Functions (essential utility functions)
+
+# Make directory and cd into it
 mkcd() {
     mkdir -p "$1" && cd "$1"
 }
 
-# Simple extract without full validation (faster)
+# Simple extract function (supports common archive formats)
 extract() {
     case "$1" in
         *.tar.gz|*.tgz) tar xzf "$1" ;;
@@ -276,23 +291,23 @@ extract() {
     esac
 }
 
-# Search in history (optimized)
+# Search in history (case-insensitive grep)
 hgrep() {
     history | grep -i "$@"
 }
 
-# Completion (lightweight)
+# Completion (lightweight bash completion)
 if [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
 fi
 
-# External sources
+# External sources (load user-specific configurations)
 [ -f ~/.bash_aliases ] && . ~/.bash_aliases
 [ -f ~/.bash_local ] && . ~/.bash_local
 
 # Performance tip: Set this variable to skip git dirty check for faster prompts
 # export BASHRC_SKIP_GIT_DIRTY=1
 
-# Windows Git Bash specific optimizations
+# Windows Git Bash specific optimizations (symlink handling)
 export MSYS=winsymlinks:nativestrict
 export CYGWIN=winsymlinks:nativestrict
