@@ -30,13 +30,11 @@ dotfiles/
 | Feature | Linux/Unix | Windows Git Bash |
 |---------|------------|------------------|
 | File Name | `.bashrc` | `.bash_profile` |
-| Execution Timer | High precision | High precision |
+| Execution Timer | ❌ | ❌ |
 | History Size | 10k / 20k | 10k / 20k |
 | Git Integration | Full + dirty check | Full + dirty check |
 | Git Dirty Indicator | `*` (unstaged) `+` (staged) | `*` (unstaged) `+` (staged) |
 | Prompt Updates | Every command | Every command |
-| System Commands | Linux native | Windows compatible |
-| Best For | Linux/Unix/macOS | Git Bash on Windows |
 
 ### Vim Configurations
 
@@ -56,29 +54,29 @@ dotfiles/
 
 ### Modern Bash Prompt
 
-All configurations include a feature-rich, color-coded prompt with execution timing and git integration:
+All configurations include a feature-rich, color-coded prompt with git integration:
 
 **Linux/Unix Example:**
 ```
-[457ms] bean@Ashblade ~/dotfiles git:(master)
+bean@Ashblade ~/dotfiles git:(master)
 $ 
-[156ms] bean@Ashblade ~/dotfiles git:(master)
+bean@Ashblade ~/dotfiles git:(master)
 $ 
-[310ms] bean@Ashblade ~/dotfiles git:(master)
+bean@Ashblade ~/dotfiles git:(master)
 $ 
 ```
 
 **Windows Git Bash Example:**
 ```
-[446ms] bean@Ashblade ~/dotfiles git:(master*)
+bean@Ashblade ~/dotfiles git:(master*)
 $ 
-[445ms] bean@Ashblade ~/dotfiles git:(master*)
+bean@Ashblade ~/dotfiles git:(master*)
 $ 
-[429ms] bean@Ashblade ~/dotfiles git:(master*)
+bean@Ashblade ~/dotfiles git:(master*)
 $ 
 ```
 
-**Prompt Format:** `[time] user@host /path git:(branch)`
+**Prompt Format:** `user@host /path git:(branch)`
 
 **Git Status Indicators:**
 - `git:(master)` - Clean working directory
@@ -87,14 +85,8 @@ $
 - `git:(master*+)` - Both unstaged and staged changes
 - `git:(a1b2c3d)` - Detached HEAD state (shows short commit hash)
 
-**Execution Timer:**
-- Shows command execution time with millisecond precision
-- Formats automatically: `450ms`, `2.5s`, `3m15s`, `1h30m45s`
-- Updates only after actual command execution (not on empty prompts)
-
 ### Key Prompt Features
 
-- **Execution timer**: Millisecond precision timing for each command
 - **Git integration**: Current branch with dirty status indicators
 - **Two-line layout**: Clean separation of info and command input
 - **Color-coded**: Easy visual scanning of status information
@@ -596,7 +588,7 @@ scp ~/dotfiles/vim/vimrc-minimal user@server:~/.vimrc
 | Feature | Linux/Unix | Windows Git Bash |
 |---------|-----------|------------------|
 | **Config File** | `~/.bashrc` | `~/.bash_profile` |
-| **Execution Timer** | ✓ High precision | ✓ High precision |
+| **Execution Timer** | ✗ | ✗ |
 | **Git Integration** | ✓ Full | ✓ Full |
 | **Git Dirty Check** | ✓ Optional | ✓ Optional |
 | **History Search** | ✓ Prefix + fzf | ✓ Prefix + fzf |

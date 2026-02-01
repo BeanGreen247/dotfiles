@@ -40,50 +40,8 @@ export LESS_TERMCAP_so=$'\E[01;47;34m'
 export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[1;36m'
 
-# Prompt configuration (Windows optimized with performance enhancements)
-timer_start=""
-timer_show="0ms"
+# Prompt configuration (Windows optimized)
 git_info=""
-_prompt_executing=""
-
-function preexec() {
-    # Only start timer for actual user commands (not empty or PROMPT_COMMAND)
-    if [ -z "$_prompt_executing" ] && [ -n "$BASH_COMMAND" ] && [ "$BASH_COMMAND" != "$PROMPT_COMMAND" ]; then
-        timer_start=$(date +%s%N)
-        _prompt_executing=1
-    fi
-}
-
-function timer_stop {
-    # Update timer only if we were executing a command
-    if [ -n "$_prompt_executing" ]; then
-        _prompt_executing=""
-        
-        # Calculate execution time in milliseconds
-        if [ -n "$timer_start" ]; then
-            local timer_end=$(date +%s%N)
-            local elapsed=$(( (timer_end - timer_start) / 1000000 ))
-            
-            if [ $elapsed -ge 3600000 ]; then
-                local hours=$((elapsed / 3600000))
-                local mins=$(( (elapsed % 3600000) / 60000 ))
-                local secs=$(( (elapsed % 60000) / 1000 ))
-                timer_show=$(printf "%dh%dm%ds" $hours $mins $secs)
-            elif [ $elapsed -ge 60000 ]; then
-                local mins=$((elapsed / 60000))
-                local secs=$(( (elapsed % 60000) / 1000 ))
-                timer_show=$(printf "%dm%ds" $mins $secs)
-            elif [ $elapsed -ge 1000 ]; then
-                local secs=$((elapsed / 1000))
-                local ms=$((elapsed % 1000))
-                timer_show=$(printf "%d.%01ds" $secs $((ms / 100)))
-            else
-                timer_show="${elapsed}ms"
-            fi
-            unset timer_start
-        fi
-    fi
-}
 
 # Get system stats (uses fast Git branch detection)
 function get_system_stats {
@@ -125,13 +83,7 @@ function get_system_stats {
 
 # Build prompt (optimized for Windows Git Bash)
 build_prompt() {
-    PS1='\[\e[0;90m\]['
-    
-    # Show timer
-    PS1+='\[\e[0;37m\]'"${timer_show}"
-    
-    PS1+='\[\e[0;90m\]]\[\e[0m\] '
-    PS1+='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] \[\e[0;37m\]\w\[\e[0m\]'
+    PS1='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] \[\e[0;37m\]\w\[\e[0m\]'
     
     [ -n "$git_info" ] && PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
     PS1+='\n\[\e[0;90m\]$ \[\e[0m\]'
@@ -139,8 +91,7 @@ build_prompt() {
     [ "$TERM" = "xterm" ] && PS1="\[\e]0;\u@\h: \w\a\]$PS1"
 }
 
-trap 'preexec' DEBUG
-PROMPT_COMMAND="timer_stop; get_system_stats; build_prompt"
+PROMPT_COMMAND="get_system_stats; build_prompt"
 
 # Bash inline autosuggestions (Windows optimized with readline enhancements)
 
