@@ -158,7 +158,7 @@ vim  # Plugins auto-install on first run
 
 ### Windows (Git Bash)
 
-**IMPORTANT:** On Windows Git Bash, the bash configuration must be installed as `.bash_profile`, not `.bashrc`. Git Bash sources `.bash_profile` for login shells.
+**IMPORTANT:** IMPORTANT: On Windows Git Bash, make sure to see my version of .bash_profile inside the bashrc folder
 
 ```bash
 # Clone the repository
@@ -752,5 +752,6 @@ MIT License - Feel free to use and modify as needed.
 - [glances](https://github.com/nicolargo/glances) - System monitoring tool
 
 ---
+
 
 **Last Updated:** February 2026
