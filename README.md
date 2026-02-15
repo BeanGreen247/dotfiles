@@ -9,7 +9,8 @@ Personal shell and editor configuration files optimized for productivity and cro
 dotfiles/
 ├── bashrc/
 │   ├── bashrc-linux     # Main config for Linux/Unix systems (install as ~/.bashrc)
-│   └── bashrc-windows   # Optimized config for Git Bash on Windows (install as ~/.bash_profile)
+|   ├── bash_profile_windows # Profile file for Git Bash on Windows (install as ~/.bash_profile)
+│   └── bashrc-windows   # Optimized config for Git Bash on Windows (install as ~/.bashrc)
 ├── vim/
 │   ├── vimrc            # Full-featured Vim with plugins
 │   ├── vimrc-minimal    # Minimal Vim (no plugins)
@@ -755,3 +756,4 @@ MIT License - Feel free to use and modify as needed.
 
 
 **Last Updated:** February 2026
+
