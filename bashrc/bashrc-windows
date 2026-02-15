@@ -1,9 +1,6 @@
 # ~/.bash_profile: executed by bash(1) for login shells (Windows Git Bash)
 # 
-# IMPORTANT: On Windows Git Bash, this file should be placed as ~/.bash_profile
-# Git Bash on Windows sources .bash_profile for login shells, not .bashrc
-# To install: copy this file to C:\Users\<username>\.bash_profile
-#
+# IMPORTANT: On Windows Git Bash, make sure to see my version of .bash_profile
 # This configuration is optimized for Windows Git Bash performance
 
 # If not running interactively, don't do anything
