@@ -236,32 +236,40 @@ let g:airline_powerline_fonts = 1
 let g:airline_theme = 'midnight'
 
 " Midnight airline palette (matches colors/midnight.vim)
-let g:airline#themes#midnight#palette = {}
-let g:airline#themes#midnight#palette.normal =
-    \ airline#themes#generate_color_map(
-    \   ['#0a1628','#58a6ff',234,75],
-    \   ['#b0c8e0','#1a2a3a',250,236],
-    \   ['#dce8f5','#0a1628',253,234])
-let g:airline#themes#midnight#palette.insert =
-    \ airline#themes#generate_color_map(
-    \   ['#0a1628','#7ec8a0',234,115],
-    \   ['#b0c8e0','#1a2a3a',250,236],
-    \   ['#dce8f5','#0a1628',253,234])
-let g:airline#themes#midnight#palette.visual =
-    \ airline#themes#generate_color_map(
-    \   ['#0a1628','#9d7cd8',234,134],
-    \   ['#b0c8e0','#1a2a3a',250,236],
-    \   ['#dce8f5','#0a1628',253,234])
-let g:airline#themes#midnight#palette.replace =
-    \ airline#themes#generate_color_map(
-    \   ['#0a1628','#e06c75',234,168],
-    \   ['#b0c8e0','#1a2a3a',250,236],
-    \   ['#dce8f5','#0a1628',253,234])
-let g:airline#themes#midnight#palette.inactive =
-    \ airline#themes#generate_color_map(
-    \   ['#4a6a8a','#050a12',60,232],
-    \   ['#4a6a8a','#050a12',60,232],
-    \   ['#4a6a8a','#050a12',60,232])
+" Wrapped in VimEnter so airline is loaded before we call its functions
+function! s:SetupMidnightAirline() abort
+    if !exists('*airline#themes#generate_color_map')
+        return
+    endif
+    let g:airline#themes#midnight#palette = {}
+    let g:airline#themes#midnight#palette.normal =
+        \ airline#themes#generate_color_map(
+        \   ['#0a1628','#58a6ff',234,75],
+        \   ['#b0c8e0','#1a2a3a',250,236],
+        \   ['#dce8f5','#0a1628',253,234])
+    let g:airline#themes#midnight#palette.insert =
+        \ airline#themes#generate_color_map(
+        \   ['#0a1628','#7ec8a0',234,115],
+        \   ['#b0c8e0','#1a2a3a',250,236],
+        \   ['#dce8f5','#0a1628',253,234])
+    let g:airline#themes#midnight#palette.visual =
+        \ airline#themes#generate_color_map(
+        \   ['#0a1628','#9d7cd8',234,134],
+        \   ['#b0c8e0','#1a2a3a',250,236],
+        \   ['#dce8f5','#0a1628',253,234])
+    let g:airline#themes#midnight#palette.replace =
+        \ airline#themes#generate_color_map(
+        \   ['#0a1628','#e06c75',234,168],
+        \   ['#b0c8e0','#1a2a3a',250,236],
+        \   ['#dce8f5','#0a1628',253,234])
+    let g:airline#themes#midnight#palette.inactive =
+        \ airline#themes#generate_color_map(
+        \   ['#4a6a8a','#050a12',60,232],
+        \   ['#4a6a8a','#050a12',60,232],
+        \   ['#4a6a8a','#050a12',60,232])
+    AirlineTheme midnight
+endfunction
+autocmd VimEnter * call s:SetupMidnightAirline()
 
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
