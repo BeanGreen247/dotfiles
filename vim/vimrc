@@ -109,13 +109,11 @@ endif
 syntax enable
 set background=dark
 
-" Use desert until plugins are installed, then switch to gruvbox
-colorscheme desert
-" silent! colorscheme gruvbox  " Uncomment after running :PlugInstall
-
-" Custom highlight for cursorline - underline only
-highlight CursorLine cterm=underline gui=underline ctermbg=NONE guibg=NONE
-highlight CursorLineNr cterm=bold gui=bold ctermfg=Yellow guifg=Yellow
+" Use desert as fallback until midnight is available from dotfiles
+silent! colorscheme midnight
+if g:colors_name !=# 'midnight'
+    colorscheme desert
+endif
 
 " Search Settings
 set incsearch                 " Incremental search
@@ -235,7 +233,36 @@ let g:fzf_preview_window = ['right:50%', 'ctrl-/']
 
 " Plugin Configuration - Airline
 let g:airline_powerline_fonts = 1
-let g:airline_theme = 'gruvbox'
+let g:airline_theme = 'midnight'
+
+" Midnight airline palette (matches colors/midnight.vim)
+let g:airline#themes#midnight#palette = {}
+let g:airline#themes#midnight#palette.normal =
+    \ airline#themes#generate_color_map(
+    \   ['#0a1628','#58a6ff',234,75],
+    \   ['#b0c8e0','#1a2a3a',250,236],
+    \   ['#dce8f5','#0a1628',253,234])
+let g:airline#themes#midnight#palette.insert =
+    \ airline#themes#generate_color_map(
+    \   ['#0a1628','#7ec8a0',234,115],
+    \   ['#b0c8e0','#1a2a3a',250,236],
+    \   ['#dce8f5','#0a1628',253,234])
+let g:airline#themes#midnight#palette.visual =
+    \ airline#themes#generate_color_map(
+    \   ['#0a1628','#9d7cd8',234,134],
+    \   ['#b0c8e0','#1a2a3a',250,236],
+    \   ['#dce8f5','#0a1628',253,234])
+let g:airline#themes#midnight#palette.replace =
+    \ airline#themes#generate_color_map(
+    \   ['#0a1628','#e06c75',234,168],
+    \   ['#b0c8e0','#1a2a3a',250,236],
+    \   ['#dce8f5','#0a1628',253,234])
+let g:airline#themes#midnight#palette.inactive =
+    \ airline#themes#generate_color_map(
+    \   ['#4a6a8a','#050a12',60,232],
+    \   ['#4a6a8a','#050a12',60,232],
+    \   ['#4a6a8a','#050a12',60,232])
+
 let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#formatter = 'unique_tail'
 let g:airline#extensions#branch#enabled = 1
