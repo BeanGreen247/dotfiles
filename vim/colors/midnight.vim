@@ -96,7 +96,7 @@ hi Directory       guifg=#58a6ff   guibg=NONE      gui=NONE      ctermfg=75   ct
 hi Conceal         guifg=#4a6a8a   guibg=NONE      gui=NONE      ctermfg=60   ctermbg=NONE cterm=NONE
 
 " ─── Syntax ─────────────────────────────────────────────────────────────────
-hi Comment         guifg=#4a6a8a   guibg=NONE      gui=italic    ctermfg=60   ctermbg=NONE cterm=NONE
+hi Comment         guifg=#7a9fbe   guibg=NONE      gui=italic    ctermfg=103  ctermbg=NONE cterm=NONE
 
 hi Constant        guifg=#d19a66   guibg=NONE      gui=NONE      ctermfg=179  ctermbg=NONE cterm=NONE
 hi String          guifg=#7ec8a0   guibg=NONE      gui=NONE      ctermfg=115  ctermbg=NONE cterm=NONE
@@ -131,7 +131,7 @@ hi Special         guifg=#56b6c2   guibg=NONE      gui=NONE      ctermfg=73   ct
 hi SpecialChar     guifg=#56b6c2   guibg=NONE      gui=NONE      ctermfg=73   ctermbg=NONE cterm=NONE
 hi Tag             guifg=#58a6ff   guibg=NONE      gui=NONE      ctermfg=75   ctermbg=NONE cterm=NONE
 hi Delimiter       guifg=#b0c8e0   guibg=NONE      gui=NONE      ctermfg=250  ctermbg=NONE cterm=NONE
-hi SpecialComment  guifg=#7ec8a0   guibg=NONE      gui=italic    ctermfg=115  ctermbg=NONE cterm=NONE
+hi SpecialComment  guifg=#89d4ac   guibg=NONE      gui=italic    ctermfg=115  ctermbg=NONE cterm=NONE
 hi Debug           guifg=#e06c75   guibg=NONE      gui=NONE      ctermfg=168  ctermbg=NONE cterm=NONE
 
 hi Underlined      guifg=#58a6ff   guibg=NONE      gui=underline ctermfg=75   ctermbg=NONE cterm=underline
