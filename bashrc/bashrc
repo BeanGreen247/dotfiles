@@ -12,6 +12,9 @@ case $- in
       *) return;;
 esac
 
+# PATH — local binaries first (mise, uv, lazygit, etc.)
+export PATH="$HOME/.local/bin:$PATH"
+
 # Shell options (comprehensive set for Linux)
 shopt -s histappend
 shopt -s checkwinsize
@@ -141,10 +144,54 @@ fi
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
-alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
+
+# ── Modern CLI replacements (graceful fallback if not installed) ──────────────
+# eza → ls
+if command -v eza &>/dev/null; then
+    alias ls='eza --icons --group-directories-first'
+    alias ll='eza -lah --icons --group-directories-first --git'
+    alias la='eza -a --icons'
+    alias lt='eza --tree --icons --level=2'
+    alias lsize='eza -lah --icons -s size'
+else
+    alias ls='ls --color=auto'
+    alias ll='ls -alFh'
+    alias la='ls -A'
+    alias lt='ls -alFht'
+    alias lsize='ls -alFhS'
+fi
+
+# bat → cat
+if command -v bat &>/dev/null; then
+    alias cat='bat --paging=never'
+elif command -v batcat &>/dev/null; then
+    alias cat='batcat --paging=never'
+    alias bat='batcat'
+fi
+
+# fd → find
+command -v fdfind &>/dev/null && alias fd='fdfind'
+
+# duf → df
+command -v duf &>/dev/null && alias df='duf'
+
+# btop → top
+command -v btop &>/dev/null && alias top='btop'
+
+# zoxide → cd (must be at the end of the file but init here)
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init bash)"
+    alias cd='z'
+fi
+
+# mise (polyglot version manager)
+command -v mise &>/dev/null && eval "$(mise activate bash)"
+
+# uv shell completion
+command -v uv &>/dev/null && eval "$(uv generate-shell-completion bash 2>/dev/null)"
 
 # System aliases (Linux-friendly navigation)
 alias ..='cd ..'
@@ -152,13 +199,6 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias home='cd ~'
 alias -- -='cd -'
-
-# Listing aliases (enhanced file viewing)
-alias ll='ls -alFh'
-alias la='ls -A'
-alias l='ls -CF'
-alias lt='ls -alFht'
-alias lsize='ls -alFhS'
 
 # Safety aliases (prevent accidental file operations)
 alias cp='cp -i'
@@ -173,7 +213,6 @@ alias q='exit'
 
 # System monitoring (Linux-specific)
 alias free='free -h'
-alias df='df -h'
 alias du='du -h'
 alias ps='ps aux'
 
@@ -206,6 +245,21 @@ alias wip='git add --all && git commit -m "WIP: work in progress"'
 alias undo='git reset --soft HEAD~'
 alias melt='git add --all && git commit --amend --no-edit'
 alias nuke='git reset --hard && git clean -fd'
+
+# Kubernetes aliases
+alias k='kubectl'
+alias kctx='kubectx'
+alias kns='kubens'
+alias kgp='kubectl get pods'
+alias kgs='kubectl get svc'
+alias kgn='kubectl get nodes'
+alias kaf='kubectl apply -f'
+alias kdel='kubectl delete'
+alias klog='kubectl logs -f'
+
+# lazygit / lazydocker shortcuts
+command -v lazygit    &>/dev/null && alias lg='lazygit'
+command -v lazydocker &>/dev/null && alias ldo='lazydocker'
 
 # Docker aliases (container management)
 alias d='docker'
@@ -257,6 +311,12 @@ if ! shopt -oq posix; then
         . /etc/bash_completion
     fi
 fi
+
+# fzf keybindings + completions (Ctrl+R, Ctrl+T, Alt+C)
+[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && \
+    . /usr/share/doc/fzf/examples/key-bindings.bash
+[ -f /usr/share/bash-completion/completions/fzf ] && \
+    . /usr/share/bash-completion/completions/fzf
 
 # External sources (load user-specific configurations)
 [ -f ~/.bash_aliases ] && . ~/.bash_aliases
