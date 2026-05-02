@@ -181,12 +181,6 @@ command -v duf &>/dev/null && alias df='duf'
 # btop → top
 command -v btop &>/dev/null && alias top='btop'
 
-# zoxide → cd (must be at the end of the file but init here)
-if command -v zoxide &>/dev/null; then
-    eval "$(zoxide init bash)"
-    alias cd='z'
-fi
-
 # mise (polyglot version manager)
 command -v mise &>/dev/null && eval "$(mise activate bash)"
 
@@ -324,3 +318,9 @@ fi
 
 # Performance tip: Set this variable to skip git dirty check for faster prompts
 # export BASHRC_SKIP_GIT_DIRTY=1
+
+# zoxide → cd (must be last — after completions, mise, fzf, everything)
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init bash)"
+    alias cd='z'
+fi
