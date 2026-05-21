@@ -1,0 +1,51 @@
+"*":
+  core:
+    disabledPackages: [
+      "github"
+      "open-on-github"
+      "dev-live-reload"
+      "deprecation-cop"
+      "autocomplete-atom-api"
+      "package-generator"
+      "timecop"
+      "styleguide"
+      "spell-check"
+      "welcome"
+      "about"
+      "background-tips"
+      "keybinding-resolver"
+    ]
+    excludeVcsIgnoredPaths: true
+    followSymlinks: false
+    ignoredNames: [
+      ".git"
+      "node_modules"
+      "dist"
+      "build"
+      ".next"
+      "venv"
+      ".venv"
+      "__pycache__"
+      "*.pyc"
+      "*.o"
+      "*.a"
+      "target"
+    ]
+  editor:
+    softWrap: false
+    showIndentGuide: false
+    scrollPastEnd: false
+  "autocomplete-plus":
+    minimumWordLength: 3
+    autoActivationDelay: 300
+  "fuzzy-finder":
+    ignoredNames: [
+      "node_modules/**"
+      "dist/**"
+      "build/**"
+      ".git/**"
+      "__pycache__/**"
+      "venv/**"
+      ".venv/**"
+      "target/**"
+    ]
