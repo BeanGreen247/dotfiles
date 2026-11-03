@@ -9,6 +9,9 @@ syntax enable
 
 " General Settings
 set mouse=a
+set ttimeoutlen=10
+set lazyredraw
+set synmaxcol=300
 set clipboard=unnamedplus
 set backspace=indent,eol,start
 set history=1000

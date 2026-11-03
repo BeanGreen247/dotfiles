@@ -8,9 +8,8 @@ Personal shell and editor configuration files optimized for productivity and cro
 ```
 dotfiles/
 ├── bashrc/
-│   ├── bashrc-linux     # Main config for Linux/Unix systems (install as ~/.bashrc)
-|   ├── bash_profile_windows # Profile file for Git Bash on Windows (install as ~/.bash_profile)
-│   └── bashrc-windows   # Optimized config for Git Bash on Windows (install as ~/.bashrc)
+│   ├── bashrc               # One config for Linux and Git Bash (install as ~/.bashrc)
+│   └── bash_profile_windows # Git Bash ~/.bash_profile (just sources ~/.bashrc)
 ├── vim/
 │   ├── vimrc            # Full-featured Vim with plugins
 │   ├── vimrc-minimal    # Minimal Vim (no plugins)
@@ -757,3 +756,14 @@ MIT License - Feel free to use and modify as needed.
 
 **Last Updated:** February 2026
 
+
+## Bash: fast path, prediction, fzf
+
+- Startup uses builtins only (no forks/evals); completion loads lazily on first Tab. Measure: `bashtime`.
+- No ls/df/cat/cd replacements; git aliases kept.
+- Own command prediction (no deps): Right/End/Ctrl-F at end of line fills the best match (ranked by prefix, cwd, previous command, recency); Ctrl-Space cycles; empty line + Right predicts the next command. Data: `~/.bash_predict`.
+- `j frag` / Alt-J: jump to frequent directories (from the same data).
+- If `fzf` is installed: Ctrl-R history, Ctrl-T files, Alt-C dirs, `fe fcd fgb fgl fgs fkill fdsh fdlog`.
+- Prompt: cwd, git branch with ahead/behind and staged/modified/new counts, rebase/merge state, exit code, command duration, venv, ssh host. `gmode` switches git between `full` (one `git status` per prompt) and `fast` (no fork); repos slower than 150 ms are demoted automatically.
+- Windows startup: most Git Bash delay is `/etc/profile.d/*` plus Defender. Launch the terminal with `bash.exe --noprofile --rcfile ~/.bashrc -i` and exclude the Git folder from Defender scanning.
+- Prompt styles (`prompt`, `prompt preview`): classic, pure, minimal, robby, box, lambda, retro, clock, powerline. Palettes (`theme`, `theme preview`): midnight, gruvbox, nord, dracula, solarized, tokyo, mono. The choice is saved in `~/.bash_prompt`. For powerline fonts set `BASHRC_SEP=''` in `~/.bash_local`.

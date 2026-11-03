@@ -1,213 +1,508 @@
-# ~/.bashrc: executed by bash(1) for non-login shells (Linux/Unix)
+# ~/.bashrc — one file for Linux and Windows (Git Bash). Install as ~/.bashrc.
 #
-# IMPORTANT: On Linux/Unix, this file should be placed as ~/.bashrc
-# Most Linux distributions source .bashrc for interactive non-login shells
-# To install: copy this file to ~/.bashrc
-#
-# This configuration is optimized for Linux/Unix systems
+# Design: bash builtins only on the startup path (no forks, no eval of
+# generated scripts). Anything slow is lazy: completion loads on first <Tab>,
+# fzf/fd/rg are optional and only touched on keypress. No ls/df/cat/cd
+# replacements; git aliases kept.
 
-# If not running interactively, don't do anything
-case $- in
-    *i*) ;;
-      *) return;;
-esac
+case $- in *i*) ;; *) return ;; esac
 
-# PATH — local binaries first (mise, uv, lazygit, etc.)
-export PATH="$HOME/.local/bin:$PATH"
+case $OSTYPE in msys*|cygwin*) __win=1 ;; *) __win= ;; esac
 
-# Shell options (comprehensive set for Linux)
-shopt -s histappend
-shopt -s checkwinsize
-shopt -s cdspell
-shopt -s cmdhist
-shopt -s dotglob
-shopt -s extglob
-shopt -s nocaseglob
+# ── PATH (no forks; mise shims instead of `mise activate`) ───────────────────
+for __d in "$HOME/.local/bin" "$HOME/.local/share/mise/shims"; do
+    [[ -d $__d && :$PATH: != *:$__d:* ]] && PATH="$__d:$PATH"
+done
+unset __d
+export PATH
 
-# History configuration (optimized for productivity)
-HISTSIZE=10000
-HISTFILESIZE=20000
-HISTCONTROL=ignoreboth:erasedups
+# ── Shell options ────────────────────────────────────────────────────────────
+shopt -s histappend checkwinsize cdspell cmdhist extglob globstar 2>/dev/null
+[[ $__win ]] || shopt -s dotglob nocaseglob
+
+# ── History (no erasedups: it rescans the whole list on every command) ───────
+HISTSIZE=50000
+HISTFILESIZE=100000
+HISTCONTROL=ignoreboth
 HISTIGNORE="ls:ll:la:cd:pwd:exit:clear:history"
 HISTTIMEFORMAT="%F %T "
 
-# Environment variables
-export EDITOR=vim
-export VISUAL=vim
-export PAGER=less
+# ── Environment ──────────────────────────────────────────────────────────────
+export EDITOR=vim VISUAL=vim PAGER=less
 export LESS='-R -i -M -W -q'
+export LESS_TERMCAP_mb=$'\E[1;32m' LESS_TERMCAP_md=$'\E[1;32m' \
+       LESS_TERMCAP_me=$'\E[0m'    LESS_TERMCAP_se=$'\E[0m' \
+       LESS_TERMCAP_so=$'\E[01;47;34m' LESS_TERMCAP_ue=$'\E[0m' \
+       LESS_TERMCAP_us=$'\E[1;36m'
 
-# Color support for less (man pages)
-export LESS_TERMCAP_mb=$'\E[1;32m'
-export LESS_TERMCAP_md=$'\E[1;32m'
-export LESS_TERMCAP_me=$'\E[0m'
-export LESS_TERMCAP_se=$'\E[0m'
-export LESS_TERMCAP_so=$'\E[01;47;34m'
-export LESS_TERMCAP_ue=$'\E[0m'
-export LESS_TERMCAP_us=$'\E[1;36m'
+# ── Prompt ───────────────────────────────────────────────────────────────────
+# 9 styles x 7 palettes, switchable live:  prompt [style|preview]   theme [name|preview]
+# Choice is saved in ~/.bash_prompt ("style theme"). Styles are modelled on
+# common setups (bash-it: pure, robbyrussell, bira, lambda, powerline, minimal…).
+# Pure bash, no fonts required (set BASHRC_SEP='' for powerline fonts).
+#
+# Git: BASHRC_GIT=full runs ONE `git status --porcelain=v2 --branch` per prompt
+# (branch, ahead/behind, counts). BASHRC_GIT=fast reads .git/HEAD only (no fork).
+# A repo whose full status takes >150 ms is demoted to fast automatically.
+# Default: full on Linux, fast on Windows. Toggle with `gmode`.
+[[ -z $BASHRC_GIT ]] && { [[ $__win ]] && BASHRC_GIT=fast || BASHRC_GIT=full; }
+BASHRC_GIT_SLOW_MS=${BASHRC_GIT_SLOW_MS:-150}
+BASHRC_SEP=${BASHRC_SEP:-▶}
+PROMPT_DIRTRIM=3
+declare -A __git_slow=()
+__t0=
+trap '[[ -z $__t0 && $BASH_COMMAND != __prompt ]] && __t0=${EPOCHREALTIME/[.,]/}' DEBUG   # start time, no fork
 
-# Prompt configuration (Linux optimized)
-git_info=""
+# palette: cwd ok warn err accent dim   (256-colour codes)
+declare -A __PAL=(
+    [midnight]="75 108 179 203 176 245"   [gruvbox]="109 142 214 167 175 245"
+    [nord]="110 108 222 167 139 244"      [dracula]="117 84 215 203 141 245"
+    [solarized]="33 64 136 160 125 244"   [tokyo]="111 114 179 203 141 244"
+    [mono]="255 250 250 250 250 244"
+)
+__rst=$'\001\e[0m\002'
+__theme_apply() {
+    local p=${__PAL[$1]}; [[ -n $p ]] || return 1
+    set -- $p
+    __n_cwd=$1 __n_ok=$2 __n_warn=$3 __n_err=$4 __n_acc=$5 __n_dim=$6
+    __c_cwd=$'\001\e[1;38;5;'$1$'m\002' __c_ok=$'\001\e[38;5;'$2$'m\002' __c_warn=$'\001\e[38;5;'$3$'m\002'
+    __c_err=$'\001\e[38;5;'$4$'m\002'   __c_mag=$'\001\e[38;5;'$5$'m\002' __c_dim=$'\001\e[38;5;'$6$'m\002'
+}
+BASHRC_STYLE=classic BASHRC_THEME=midnight
+[[ -r ~/.bash_prompt ]] && read -r BASHRC_STYLE BASHRC_THEME < ~/.bash_prompt
+__theme_apply "$BASHRC_THEME" || { BASHRC_THEME=midnight; __theme_apply midnight; }
 
-# Get system stats (fast Git branch detection)
-function get_system_stats {
-    git_info=""
-    
-    # Fast Git branch detection
-    local headfile head branch
-    local dir="$PWD"
-    
-    while [ -n "$dir" ]; do
-        if [ -e "$dir/.git/HEAD" ]; then
-            headfile="$dir/.git/HEAD"
+__prompt_git() {      # sets __git (coloured), __gp (plain), __gb (branch), __gdirty, __ga/__gbh (ahead/behind)
+    __git= __gp= __gb= __gdirty=0 __ga=0 __gbh=0
+    local dir=$PWD head gd br st= x
+    while [[ -n $dir ]]; do
+        if [[ -d $dir/.git ]]; then gd=$dir/.git; break
+        elif [[ -f $dir/.git ]]; then
+            read -r head < "$dir/.git" && gd=${head#gitdir: }
+            [[ $gd == /* || $gd == ?:* ]] || gd=$dir/$gd
             break
         fi
-        dir="${dir%/*}"
+        dir=${dir%/*}
     done
-    
-    if [ -e "$headfile" ]; then
-        read -r head < "$headfile" || return
-        case "$head" in
-            ref:*) branch="${head##*/}" ;;
-            "") branch="" ;;
-            *) branch="${head:0:7}" ;;  # Detached HEAD
-        esac
+    [[ -n $gd && -r $gd/HEAD ]] || return
+    for x in rebase-merge:REBASE rebase-apply:REBASE MERGE_HEAD:MERGE CHERRY_PICK_HEAD:PICK REVERT_HEAD:REVERT BISECT_LOG:BISECT; do
+        [[ -e $gd/${x%%:*} ]] && { st=${x##*:}; break; }
+    done
+    local seg= plain= sg=0 md=0 nw=0 cf=0 a=0 b=0
+    if [[ $BASHRC_GIT == full && -z ${__git_slow[$gd]} ]]; then
+        local t0=${EPOCHREALTIME/[.,]/} out l ab
+        out=$(git --no-optional-locks status --porcelain=v2 --branch 2>/dev/null) || return
+        while IFS= read -r l; do
+            case $l in
+                '# branch.head '*) br=${l#'# branch.head '} ;;
+                '# branch.oid '*)  x=${l#'# branch.oid '}; x=${x:0:7} ;;
+                '# branch.ab '*)   ab=${l#'# branch.ab '}; a=${ab%% *}; a=${a#+}; b=${ab##* }; b=${b#-} ;;
+                1\ *|2\ *) [[ ${l:2:1} != . ]] && (( sg++ )); [[ ${l:3:1} != . ]] && (( md++ )) ;;
+                u\ *) (( cf++ )) ;;
+                '?'*) (( nw++ )) ;;
+            esac
+        done <<< "$out"
+        [[ $br == '(detached)' ]] && br=$x
+        (( ( ${EPOCHREALTIME/[.,]/} - t0 ) / 1000 > BASHRC_GIT_SLOW_MS )) && __git_slow[$gd]=1
+        (( sg + md + nw + cf )) && __gdirty=1
+        local col=$__c_ok; (( __gdirty )) && col=$__c_warn
+        seg=$col$br plain=$br
+        (( a ))  && { seg+=" ⇡$a";  plain+=" ⇡$a"; }
+        (( b ))  && { seg+=" ⇣$b";  plain+=" ⇣$b"; }
+        (( sg )) && { seg+=" $__c_ok+$sg";   plain+=" +$sg"; }
+        (( md )) && { seg+=" $__c_warn!$md"; plain+=" !$md"; }
+        (( nw )) && { seg+=" $__c_dim?$nw";  plain+=" ?$nw"; }
+        (( cf )) && { seg+=" $__c_err=$cf";  plain+=" =$cf"; }
+        __ga=$a __gbh=$b
+    else
+        read -r head < "$gd/HEAD" || return
+        case $head in ref:*) br=${head#ref: refs/heads/} ;; *) br=${head:0:7} ;; esac
+        seg=$__c_ok$br plain=$br
     fi
-    
-    if [ ! -z "$branch" ]; then
-        # Optional dirty check (set BASHRC_SKIP_GIT_DIRTY=1 for max speed)
-        if [ -z "$BASHRC_SKIP_GIT_DIRTY" ]; then
-            local dirty=""
-            git diff --quiet 2>/dev/null || dirty="*"
-            git diff --cached --quiet 2>/dev/null || dirty+="+" 
-            git_info=" git:($branch${dirty})"
-        else
-            git_info=" git:($branch)"
+    [[ -n $st ]] && { seg+=" $__c_mag✦$st"; plain+=" ✦$st"; }
+    __gb=$br __gp=$plain __git=" $seg$__rst"
+}
+gmode() {
+    case $1 in full|fast) BASHRC_GIT=$1 ;; *) [[ $BASHRC_GIT == full ]] && BASHRC_GIT=fast || BASHRC_GIT=full ;; esac
+    __git_slow=(); echo "git prompt: $BASHRC_GIT"
+}
+
+# ── styles: each builds PS1 from __who __venv __dur __rcs __cc and the git vars
+__ps_classic() {    # ~/…/cwd branch ⇡1 +1 !2 ?3 took 5s / ❯
+    PS1="\n$__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__cc$__rcs❯$__rst "
+}
+__ps_pure() {       # pure: dim branch with *, arrows, minimal noise
+    local g=; [[ -n $__gb ]] && { g=" $__c_dim$__gb"; (( __gdirty )) && g+='*'; (( __ga )) && g+=" ⇡"; (( __gbh )) && g+=" ⇣"; g+=$__rst; }
+    PS1="\n$__who$__venv$__c_cwd\\w$__rst$g$__dur\n$__cc❯$__rst "
+}
+__ps_minimal() {    # one line: cwd basename + ❯
+    local g=; [[ -n $__gb ]] && g=" $__c_dim$__gb$__rst"
+    PS1="$__who$__c_cwd\\W$__rst$g $__cc❯$__rst "
+}
+__ps_robby() {      # robbyrussell: ➜  dir git:(branch ✗)
+    local g=; [[ -n $__gb ]] && { g=" $__c_cwd""git:($__c_err$__gb$__c_cwd)$__rst"; (( __gdirty )) && g+=" $__c_warn✗$__rst"; }
+    PS1="$__cc➜$__rst  $__who$__c_ok\\W$__rst$g$__dur "
+}
+__ps_box() {        # bira: ╭─ user@host cwd git / ╰─❯
+    PS1="\n$__c_dim╭─$__rst$__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__c_dim╰─$__cc$__rcs❯$__rst "
+}
+__ps_lambda() {     # lambda: one line  λ cwd branch
+    PS1="$__cc$__rcs""λ$__rst $__who$__c_cwd\\W$__rst$__git "
+}
+__ps_retro() {      # classic bash look: [user@host cwd] (branch)$
+    PS1="$__c_dim[$__rst\\u@\\h $__c_cwd\\w$__rst$__c_dim]$__rst$__git$__dur $__cc\\\$$__rst "
+}
+__ps_clock() {      # time on the left (bash \t, no fork)
+    PS1="\n$__c_dim\\t$__rst $__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__cc$__rcs❯$__rst "
+}
+__ps_powerline() {  # coloured bands, glyph-light (BASHRC_SEP)
+    local s=$BASHRC_SEP fgd=$'\001\e[38;5;234m\002' e=$'\001\e[' x=$'m\002'
+    local bgc="$e""48;5;${__n_cwd}$x" bg
+    PS1="\n$bgc$fgd \\w "
+    local prev=$__n_cwd
+    if [[ -n $__gb ]]; then
+        (( __gdirty )) && bg=$__n_warn || bg=$__n_ok
+        PS1+="$e""38;5;$prev;48;5;$bg$x$s$e""48;5;$bg$x$fgd $__gp "; prev=$bg
+    fi
+    local rcn=$__n_ok; (( __rc )) && { rcn=$__n_err; PS1+="$e""38;5;$prev;48;5;$rcn$x$s$e""48;5;$rcn$x$fgd $__rc "; prev=$rcn; }
+    PS1+="$__rst$e""38;5;$prev$x$s$__rst$__dur "
+    [[ -n $__who$__venv ]] && PS1="\n$__who$__venv${PS1#$'\n'}"
+}
+declare -F "__ps_$BASHRC_STYLE" &>/dev/null || BASHRC_STYLE=classic
+
+__prompt() {
+    local rc=$?                         # must be first
+    __rc=$rc
+    __pred_record
+    __prompt_git
+    history -a
+    local ms; __dur= __who= __venv= __rcs= __cc=$__c_ok
+    if [[ -n $__t0 ]]; then
+        ms=$(( (${EPOCHREALTIME/[.,]/} - __t0) / 1000 )); __t0=
+        if (( ms >= 2000 )); then
+            local s=$(( ms / 1000 ))
+            if (( s >= 3600 )); then __dur=" ${__c_warn}took $((s/3600))h$((s%3600/60))m"
+            elif (( s >= 60 )); then __dur=" ${__c_warn}took $((s/60))m$((s%60))s"
+            else __dur=" ${__c_warn}took ${s}s"; fi
+            __dur+=$__rst
         fi
     fi
+    [[ -n $SSH_CONNECTION || $EUID == 0 ]] && __who="${__c_dim}\\u@\\h${__rst} "
+    [[ -n $VIRTUAL_ENV ]] && __venv="${__c_dim}(${VIRTUAL_ENV##*/})${__rst} "
+    (( rc )) && { __cc=$__c_err; __rcs="$rc "; }
+    "__ps_$BASHRC_STYLE"
+    [[ $EUID == 0 ]] && PS1=${PS1//❯/#}
+    [[ $TERM == linux ]] || PS1=$'\001\e]0;\\u@\\h: \\w\a\002'$PS1
 }
 
-# Build prompt (optimized for Linux)
-build_prompt() {
-    PS1='\[\e[0;94m\]\u\[\e[0;90m\]@\[\e[0;94m\]\h\[\e[0m\] \[\e[0;37m\]\w\[\e[0m\]'
-    
-    [ -n "$git_info" ] && PS1+="\[\e[0;33m\]${git_info}\[\e[0m\]"
-    PS1+='\n\[\e[0;90m\]$ \[\e[0m\]'
-    
-    [ "$TERM" = "xterm" ] && PS1="\[\e]0;\u@\h: \w\a\]$PS1"
+__prompt_save() { printf '%s %s\n' "$BASHRC_STYLE" "$BASHRC_THEME" > ~/.bash_prompt; }
+prompt() {
+    local rc=$?                         # must be first
+    __rc=$rc
+    __pred_record
+    __prompt_git
+    history -a
+    local ms; __dur= __who= __venv= __rcs= __cc=$__c_ok
+    if [[ -n $__t0 ]]; then
+        ms=$(( (${EPOCHREALTIME/[.,]/} - __t0) / 1000 )); __t0=
+        if (( ms >= 2000 )); then
+            local s=$(( ms / 1000 ))
+            if (( s >= 3600 )); then __dur=" ${__c_warn}took $((s/3600))h$((s%3600/60))m"
+            elif (( s >= 60 )); then __dur=" ${__c_warn}took $((s/60))m$((s%60))s"
+            else __dur=" ${__c_warn}took ${s}s"; fi
+            __dur+=$__rst
+        fi
+    fi
+    [[ -n $SSH_CONNECTION || $EUID == 0 ]] && __who="${__c_dim}\\u@\\h${__rst} "
+    [[ -n $VIRTUAL_ENV ]] && __venv="${__c_dim}(${VIRTUAL_ENV##*/})${__rst} "
+    (( rc )) && { __cc=$__c_err; __rcs="$rc "; }
+    "__ps_$BASHRC_STYLE"
+    [[ $EUID == 0 ]] && PS1=${PS1//❯/#}
+    [[ $TERM == linux ]] || PS1=$'\001\e]0;\\u@\\h: \\w\a\002'$PS1
 }
 
-PROMPT_COMMAND="get_system_stats; build_prompt"
+__prompt_save() { printf '%s %s\n' "$BASHRC_STYLE" "$BASHRC_THEME" > ~/.bash_prompt; }
+__prompt_preview() {      # render every style/palette without forks (PS1@P)
+    local keep=$BASHRC_STYLE s out
+    __rc=0 __who= __venv= __dur=" ${__c_warn}took 3s${__rst}" __rcs= __cc=$__c_ok
+    __prompt_git
+    for s in "$@"; do
+        "__ps_$s"; out=${PS1@P}; out=${out//[$'\001\002']/}
+        printf '%-10s%s\n' "$s" "${out#$'\n'}" | sed 's/^\(.\{10\}\)\n*/\1/' 2>/dev/null || printf '%s\n' "$out"
+    done
+}
+prompt() {
+    local styles="classic pure minimal robby box lambda retro clock powerline" s
+    case $1 in
+        '')       echo "styles: $styles"; echo "current: $BASHRC_STYLE / $BASHRC_THEME" ;;
+        preview)  local keep=$BASHRC_STYLE
+                  __rc=0 __who= __venv= __dur=" ${__c_warn}took 3s${__rst}" __rcs= __cc=$__c_ok; __prompt_git
+                  for s in $styles; do
+                      printf '\n\033[2m%s\033[0m' "$s"; "__ps_$s"; local o=${PS1@P}; printf '%s' "${o//[$'\001\002']/}"; echo
+                  done ;;
+        *) if declare -F "__ps_$1" &>/dev/null; then BASHRC_STYLE=$1; __prompt_save; else echo "unknown style: $1 ($styles)" >&2; return 1; fi ;;
+    esac
+}
+theme() {
+    local t o
+    case $1 in
+        '')      echo "themes: ${!__PAL[*]}"; echo "current: $BASHRC_THEME" ;;
+        preview) local keep=$BASHRC_THEME
+                 for t in "${!__PAL[@]}"; do
+                     __theme_apply "$t"; __rc=0 __who= __venv= __dur= __rcs= __cc=$__c_ok; __prompt_git; "__ps_$BASHRC_STYLE"
+                     o=${PS1@P}; printf '\n\033[2m%-10s\033[0m%s\n' "$t" "${o//[$'\001\002']/}"
+                 done; __theme_apply "$keep" ;;
+        *)       if __theme_apply "$1"; then BASHRC_THEME=$1; __prompt_save; else echo "unknown theme: $1 (${!__PAL[*]})" >&2; return 1; fi ;;
+    esac
+}
 
-# Bash inline autosuggestions (Linux optimized with readline enhancements)
+# ── Command prediction (pure bash, no deps) ──────────────────────────────────
+# Every command is logged as  cwd<TAB>previous-command<TAB>command  to
+# ~/.bash_predict. A candidate is scored by: prefix match (required unless the
+# line is empty), run in this directory (+3), run right after the previous
+# command (+4), recency (+0..2). Keys:
+#   Right / End / Ctrl-F at end of line   fill best prediction
+#   Ctrl-Space                            fill best, press again to cycle
+#   (empty line + Right predicts the likely NEXT command)
+#   Alt-J (or `j frag`)                   jump to frequent directories
+__PRED_FILE=${BASH_PREDICT_FILE:-$HOME/.bash_predict}
+__PRED_MAX=${BASH_PREDICT_MAX:-2000}
+__pP=() __pV=() __pC=() __pW=() __pR=() __pN=0
+declare -A __pIdx=()
+__pred_loaded=
+__pred_prev=
+__pred_tmp=${TMPDIR:-/tmp}/.bashpred.$$
 
-# Enable better readline behavior
+__pred_load() {
+    [[ $__pred_loaded ]] && return
+    __pred_loaded=1
+    local -a lines; local tab=$'\t'
+    local l
+    if [[ -r $__PRED_FILE ]]; then
+        mapfile -t lines < "$__PRED_FILE"
+        if (( ${#lines[@]} > __PRED_MAX * 2 )); then
+            lines=("${lines[@]: -__PRED_MAX}")
+            printf '%s\n' "${lines[@]}" > "$__PRED_FILE"
+        fi
+    elif [[ -r ${HISTFILE:-$HOME/.bash_history} ]]; then   # bootstrap from history
+        mapfile -t lines < "${HISTFILE:-$HOME/.bash_history}"
+        local -a seeded=()
+        local from=$(( ${#lines[@]} > __PRED_MAX ? ${#lines[@]} - __PRED_MAX : 0 ))
+        for l in "${lines[@]:from}"; do
+            [[ $l == \#[0-9]* || -z $l ]] && continue
+            seeded+=("$tab$tab$l")
+        done
+        lines=("${seeded[@]}")
+        (( ${#lines[@]} )) && printf '%s\n' "${lines[@]}" > "$__PRED_FILE"
+    fi
+    local -i i=0 k
+    for l in "${lines[@]}"; do
+        if [[ -n ${__pIdx[$l]} ]]; then
+            k=${__pIdx[$l]}; (( __pW[k]++ )); __pR[k]=$i
+        else
+            __pIdx[$l]=${#__pC[@]}
+            __pP+=("${l%%$'\t'*}"); local m=${l#*$'\t'}
+            __pV+=("${m%%$'\t'*}"); __pC+=("${m#*$'\t'}"); __pW+=(1); __pR+=("$i")
+        fi
+        (( i++ ))
+    done
+}
+
+__pred_record() {
+    local n cmd
+    { HISTTIMEFORMAT= history 1; } > "$__pred_tmp" 2>/dev/null
+    read -r n cmd < "$__pred_tmp"
+    [[ -z ${__pred_lastn+x} ]] && { __pred_lastn=$n; return; }   # skip entry loaded from HISTFILE
+    [[ -z $cmd || $n == "$__pred_lastn" ]] && return
+    __pred_lastn=$n
+    case $cmd in ' '*|pwd|ls|ll|la|cd|cd\ *|clear|exit|history|j\ *) __pred_prev=$cmd; return ;; esac
+    printf '%s\t%s\t%s\n' "$PWD" "$__pred_prev" "$cmd" >> "$__PRED_FILE"
+    if [[ $__pred_loaded ]]; then
+        local l=$PWD$'\t'$__pred_prev$'\t'$cmd k
+        if [[ -n ${__pIdx[$l]} ]]; then k=${__pIdx[$l]}; (( __pW[k]++ )); __pR[k]=$__pN
+        else __pIdx[$l]=${#__pC[@]}; __pP+=("$PWD"); __pV+=("$__pred_prev"); __pC+=("$cmd"); __pW+=(1); __pR+=("$__pN"); fi
+        (( __pN++ ))
+    fi
+    __pred_prev=$cmd
+}
+
+__pred_list=() __pred_idx=0 __pred_filled=
+# usage: __pred_rank <prefix>  -> fills __pred_list (best first, max 8)
+__pred_rank() {
+    local pre=$1 i c s age w
+    local -A score=()
+    for (( i = ${#__pC[@]} - 1; i >= 0; i-- )); do
+        c=${__pC[i]}
+        [[ -n $pre && $c != "$pre"* || $c == "$pre" ]] && continue
+        if [[ -n $__pred_prev && ${__pV[i]} == "$__pred_prev" ]]; then s=4
+        elif [[ -z $pre ]]; then continue          # empty line: only transitions
+        else s=0; fi
+        [[ ${__pP[i]} == "$PWD" ]] && (( s += 3 ))
+        w=${__pW[i]}; (( s += w > 5 ? 5 : w ))
+        age=$(( __pN - __pR[i] )); (( s += age < 50 ? 2 : age < 500 ? 1 : 0 ))
+        score[$c]=$(( ${score[$c]:-0} + s ))
+    done
+    __pred_list=()
+    local k best bs
+    for (( n = 0; n < 8; n++ )); do
+        best= bs=0
+        for k in "${!score[@]}"; do (( score[$k] > bs )) && { best=$k; bs=${score[$k]}; }; done
+        [[ -z $best ]] && break
+        __pred_list+=("$best"); unset 'score[$best]'
+    done
+}
+
+__pred_fill() {            # $1 = cycle?
+    __pred_load
+    if [[ -n $1 && -n $__pred_filled && $READLINE_LINE == "$__pred_filled" ]]; then
+        (( __pred_idx = (__pred_idx + 1) % ${#__pred_list[@]} ))
+    else
+        __pred_base=$READLINE_LINE
+        __pred_rank "$READLINE_LINE"
+        __pred_idx=0
+    fi
+    (( ${#__pred_list[@]} )) || return
+    READLINE_LINE=${__pred_list[__pred_idx]}
+    READLINE_POINT=${#READLINE_LINE}
+    __pred_filled=$READLINE_LINE
+}
+__pred_right() {
+    if (( READLINE_POINT >= ${#READLINE_LINE} )); then __pred_fill
+    else (( READLINE_POINT++ )); fi
+}
+__pred_word() {
+    if (( READLINE_POINT >= ${#READLINE_LINE} )); then __pred_fill; return; fi
+    local r=${READLINE_LINE:READLINE_POINT}
+    r=${r#"${r%%[![:space:]]*}"}; r=${r#"${r%%[[:space:]]*}"}
+    READLINE_POINT=$(( ${#READLINE_LINE} - ${#r} ))
+}
+__pred_cycle() { __pred_fill 1; }
+
+# j <fragment>: jump to the most used/recent matching directory (zoxide-lite)
+__j_rank() {
+    __pred_load
+    local i n=${#__pP[@]} d; local -A sc=()
+    for (( i = n - 1; i >= 0; i-- )); do
+        d=${__pP[i]}; [[ -n $d && -d $d ]] || continue
+        [[ -z $1 || ${d,,} == *"${1,,}"* ]] || continue
+        sc[$d]=$(( ${sc[$d]:-0} + ${__pW[i]} + (__pN - __pR[i] < 200 ? 2 : 0) ))
+    done
+    for d in "${!sc[@]}"; do printf '%s\t%s\n' "${sc[$d]}" "$d"; done | sort -rn | cut -f2
+}
+j() {
+    local d
+    if [[ -z $1 ]]; then
+        command -v fzf &>/dev/null && d=$(__j_rank "" | fzf --height 40% --reverse) || { __j_rank "" | head -20; return; }
+    else
+        d=$(__j_rank "$1" | head -1)
+    fi
+    [[ -n $d ]] && cd "$d" || echo "j: no match" >&2
+}
+__j_widget() {
+    command -v fzf &>/dev/null || return
+    local d; d=$(__j_rank "" | fzf --height 40% --reverse) || return
+    READLINE_LINE="cd ${d// /\\ }"; READLINE_POINT=${#READLINE_LINE}
+}
+
+# ── Readline ─────────────────────────────────────────────────────────────────
 bind 'set show-all-if-ambiguous on'
 bind 'set completion-ignore-case on'
 bind 'set colored-stats on'
-bind 'set visible-stats on'
 bind 'set mark-symlinked-directories on'
 bind 'set colored-completion-prefix on'
-bind 'set menu-complete-display-prefix on'
-
-# Bind arrow keys for prefix-based history search
+bind 'set bell-style none'
 bind '"\e[A": history-search-backward'
 bind '"\e[B": history-search-forward'
+bind -x '"\e[C": __pred_right'
+bind -x '"\eOC": __pred_right'
+bind -x '"\e[F": __pred_right'
+bind -x '"\eOF": __pred_right'
+bind -x '"\C-f": __pred_word'
+bind -x '"\C-@": __pred_cycle'
+bind -x '"\ej": __j_widget'
 
-# Bind Right arrow and Ctrl+F to move forward
-bind '"\e[C": forward-char'
-bind '"\C-f": forward-word'
-bind '"\e[F": end-of-line'  # End key
+PROMPT_COMMAND=__prompt
+trap 'rm -f "$__pred_tmp"' EXIT
 
-# Use fzf for Ctrl+R if available (fuzzy history search)
-if command -v fzf &> /dev/null; then
-    bind '"\C-r": "\C-x\C-r"'
-    bind -x '"\C-x\C-r": __fzf_history'
-
-    __fzf_history() {
-        local selected
-        selected=$(
-            HISTTIMEFORMAT= history |
-            fzf --tac --no-sort --height 40% --reverse \
-                --query "$READLINE_LINE" \
-                --preview 'echo {}' --preview-window down:3:wrap |
-            sed 's/^[ ]*[0-9]*[ ]*//'
-        )
-        if [ -n "$selected" ]; then
-            READLINE_LINE="$selected"
-            READLINE_POINT=${#READLINE_LINE}
-        fi
+# ── fzf (optional; own bindings, nothing is sourced at startup) ──────────────
+if command -v fzf &>/dev/null; then
+    __fzf_files() {
+        if   command -v fd   &>/dev/null; then fd --type f --hidden --exclude .git
+        elif command -v fdfind &>/dev/null; then fdfind --type f --hidden --exclude .git
+        elif command -v rg   &>/dev/null; then rg --files --hidden -g '!.git'
+        else find . -type f -not -path '*/.git/*'; fi
     }
+    __fzf_dirs() {
+        if   command -v fd   &>/dev/null; then fd --type d --hidden --exclude .git
+        else find . -type d -not -path '*/.git/*' 2>/dev/null; fi
+    }
+    __fzf_hist_w() {
+        local s
+        s=$(HISTTIMEFORMAT= history | fzf --tac --no-sort --height 40% --reverse \
+              --query "$READLINE_LINE" --preview 'echo {}' --preview-window down:3:wrap) || return
+        [[ $s =~ ^[[:space:]]*[0-9]+[[:space:]]+(.*)$ ]] && s=${BASH_REMATCH[1]}
+        READLINE_LINE=$s READLINE_POINT=${#s}
+    }
+    __fzf_file_w() {
+        local s
+        s=$(__fzf_files | fzf --multi --height 40% --reverse --query "${READLINE_LINE:0:READLINE_POINT}") || return
+        s=${s//$'\n'/ }
+        READLINE_LINE=${READLINE_LINE:0:READLINE_POINT}$s${READLINE_LINE:READLINE_POINT}
+        READLINE_POINT=$(( READLINE_POINT + ${#s} ))
+    }
+    __fzf_cd_w() {
+        local s; s=$(__fzf_dirs | fzf --height 40% --reverse) || return
+        READLINE_LINE="cd ${s// /\\ }" READLINE_POINT=${#READLINE_LINE}
+    }
+    bind -x '"\C-r": __fzf_hist_w'
+    bind -x '"\C-t": __fzf_file_w'
+    bind -x '"\ec": __fzf_cd_w'
+
+    # fzf helpers
+    fe()  { local f; f=$(__fzf_files | fzf --height 50% --reverse --preview 'head -50 {}') && "${EDITOR:-vim}" "$f"; }
+    fcd() { local d; d=$(__fzf_dirs | fzf --height 40% --reverse) && cd "$d"; }
+    fgb() { local b; b=$(git branch --all --sort=-committerdate --format='%(refname:short)' | fzf --height 40% --reverse) && git checkout "${b#origin/}"; }
+    fgl() { git log --oneline --color=always | fzf --ansi --no-sort --reverse --preview 'git show --color=always {1}' | { read -r h _; [[ -n $h ]] && git show "$h"; }; }
+    fgs() { git status -s | fzf --multi --reverse --preview 'git diff --color=always -- {2}' | while read -r _ f; do echo "$f"; done; }
+    fkill() { local p; p=$(ps -ef | sed 1d | fzf --multi --reverse | awk '{print $2}') && [[ -n $p ]] && kill ${1:+-$1} $p; }
+    fdsh() { local c; c=$(docker ps --format '{{.Names}}' | fzf --height 40% --reverse) && docker exec -it "$c" "${1:-sh}"; }
+    fdlog() { local c; c=$(docker ps --format '{{.Names}}' | fzf --height 40% --reverse) && docker logs -f "$c"; }
+    fenv() { env | sort | fzf --height 40% --reverse; }
 fi
 
-# Colors & tools (enable colored output)
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-fi
-alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
-
-# ── Modern CLI replacements (graceful fallback if not installed) ──────────────
-# eza → ls
-if command -v eza &>/dev/null; then
-    alias ls='eza --icons --group-directories-first'
-    alias ll='eza -lah --icons --group-directories-first --git'
-    alias la='eza -a --icons'
-    alias lt='eza --tree --icons --level=2'
-    alias lsize='eza -lah --icons -s size'
-else
-    alias ls='ls --color=auto'
-    alias ll='ls -alFh'
-    alias la='ls -A'
-    alias lt='ls -alFht'
-    alias lsize='ls -alFhS'
+# ── Lazy bash-completion (loaded on first <Tab>, not at startup) ─────────────
+if ! shopt -oq posix; then
+    __lazy_comp() {
+        unset -f __lazy_comp
+        complete -r -D 2>/dev/null
+        if   [[ -f /usr/share/bash-completion/bash_completion ]]; then . /usr/share/bash-completion/bash_completion
+        elif [[ -f /etc/bash_completion ]]; then . /etc/bash_completion
+        elif [[ -f /mingw64/share/git/completion/git-completion.bash ]]; then . /mingw64/share/git/completion/git-completion.bash
+        fi
+        if declare -F _completion_loader &>/dev/null; then
+            _completion_loader git; _completion_loader docker; _completion_loader kubectl
+        fi
+        if declare -F __git_complete &>/dev/null; then
+            __git_complete g git; __git_complete gco _git_checkout; __git_complete gb _git_branch
+            __git_complete gd _git_diff; __git_complete gl _git_log; __git_complete gpl _git_pull
+            __git_complete gp _git_push; __git_complete ga _git_add; __git_complete gf _git_fetch
+        fi
+        return 124
+    }
+    complete -D -F __lazy_comp
 fi
 
-# fd → find
-command -v fdfind &>/dev/null && alias fd='fdfind'
-
-# duf → df
-command -v duf &>/dev/null && alias df='duf'
-
-# btop → top
-command -v btop &>/dev/null && alias top='btop'
-
-# mise (polyglot version manager)
-command -v mise &>/dev/null && eval "$(mise activate bash)"
-
-# uv shell completion
-command -v uv &>/dev/null && eval "$(uv generate-shell-completion bash 2>/dev/null)"
-
-# System aliases (Linux-friendly navigation)
+# ── Navigation ───────────────────────────────────────────────────────────────
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias home='cd ~'
 alias -- -='cd -'
-
-# Safety aliases (prevent accidental file operations)
-alias cp='cp -i'
-alias mv='mv -i'
-alias rm='rm -I --preserve-root'
-alias mkdir='mkdir -p'
-
-# System info aliases
 alias h='history'
 alias c='clear'
 alias q='exit'
 
-# System monitoring (Linux-specific)
-alias free='free -h'
-alias du='du -h'
-alias ps='ps aux'
-
-# Networking aliases
-alias myip='curl -s https://ipinfo.io/ip'
-alias ports='netstat -tulanp'
-alias listening='netstat -tulanp | grep LISTEN'
-
-# Git aliases (essential commands for fast Git workflow)
+# ── Git ──────────────────────────────────────────────────────────────────────
 alias g='git'
 alias gs='git status -sb'
 alias ga='git add'
@@ -222,17 +517,22 @@ alias gpl='git pull'
 alias gf='git fetch'
 alias gl='git log --oneline --graph --decorate -10'
 alias gd='git diff'
+alias gds='git diff --staged'
 alias gb='git branch'
 alias gco='git checkout'
 alias gcb='git checkout -b'
-
-# Advanced git aliases (workflow shortcuts)
+alias gsw='git switch'
+alias gst='git stash'
+alias gstp='git stash pop'
+alias grb='git rebase'
+alias gcp='git cherry-pick'
 alias wip='git add --all && git commit -m "WIP: work in progress"'
 alias undo='git reset --soft HEAD~'
 alias melt='git add --all && git commit --amend --no-edit'
 alias nuke='git reset --hard && git clean -fd'
+alias groot='cd "$(git rev-parse --show-toplevel)"'
 
-# Kubernetes aliases
+# ── Kubernetes / Docker ──────────────────────────────────────────────────────
 alias k='kubectl'
 alias kctx='kubectx'
 alias kns='kubens'
@@ -242,77 +542,74 @@ alias kgn='kubectl get nodes'
 alias kaf='kubectl apply -f'
 alias kdel='kubectl delete'
 alias klog='kubectl logs -f'
-
-# lazygit / lazydocker shortcuts
-command -v lazygit    &>/dev/null && alias lg='lazygit'
-command -v lazydocker &>/dev/null && alias ldo='lazydocker'
-
-# Docker aliases (container management)
+alias kd='kubectl describe'
+alias kx='kubectl exec -it'
 alias d='docker'
 alias dc='docker compose'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'
+alias dcl='docker compose logs -f'
 alias dps='docker ps'
 alias dpsa='docker ps -a'
 alias di='docker images'
+alias lg='lazygit'
+alias ldo='lazydocker'
 
-# Python aliases (Python development shortcuts)
+# ── Python / Node ────────────────────────────────────────────────────────────
 alias py='python3'
 alias pip='pip3'
 alias venv='python3 -m venv'
-
-# Node/NPM aliases (Node.js development shortcuts)
 alias ni='npm install'
 alias nr='npm run'
 alias ns='npm start'
 
-# Functions (essential utility functions)
+# ── Systems engineering ──────────────────────────────────────────────────────
+if [[ $__win ]]; then
+    alias ports='netstat -ano'
+    alias listening='netstat -ano | grep LISTENING'
+else
+    alias ports='ss -tulpn'
+    alias listening='ss -tlnp'
+    alias sc='systemctl'
+    alias scu='systemctl --user'
+    alias jctl='journalctl -xe'
+    alias jerr='journalctl -b -p err --no-pager'
+    jf() { journalctl -fu "$1"; }            # follow a unit's log
+    sstat() { systemctl status "$1" --no-pager; }
+    alias dmesgt='dmesg -T | tail -50'
+fi
+alias myip='curl -s https://ipinfo.io/ip'
+alias serve='python3 -m http.server'
+alias reload='exec bash -l'
+alias tm='tmux new-session -A -s main'
+alias hgrep='history | grep -i'
+alias bashtime='time bash -i -c exit'
 
-# Make directory and cd into it
-mkcd() {
-    mkdir -p "$1" && cd "$1"
-}
-
-# Simple extract function (supports common archive formats)
+# ── Functions ────────────────────────────────────────────────────────────────
+mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
+up()   { local n=${1:-1} p=; while (( n-- > 0 )); do p+=../; done; cd "${p:-.}"; }
+bak()  { cp -a -- "$1" "$1.bak.$(date +%Y%m%d-%H%M%S)"; }
 extract() {
-    case "$1" in
-        *.tar.gz|*.tgz) tar xzf "$1" ;;
+    case $1 in
+        *.tar.gz|*.tgz)   tar xzf "$1" ;;
         *.tar.bz2|*.tbz2) tar xjf "$1" ;;
-        *.tar.xz) tar xJf "$1" ;;
-        *.zip) unzip "$1" ;;
-        *.7z) 7z x "$1" ;;
-        *.rar) unrar x "$1" ;;
-        *) echo "Unsupported format: $1" ;;
+        *.tar.xz)         tar xJf "$1" ;;
+        *.tar.zst)        tar --zstd -xf "$1" ;;
+        *.tar)            tar xf "$1" ;;
+        *.gz)             gunzip "$1" ;;
+        *.zip)            unzip "$1" ;;
+        *.7z)             7z x "$1" ;;
+        *.rar)            unrar x "$1" ;;
+        *) echo "Unsupported format: $1" >&2; return 1 ;;
     esac
 }
+path() { local IFS=:; printf '%s\n' $PATH; }
+# Which process owns a port
+whoport() { if [[ $__win ]]; then netstat -ano | grep ":$1 "; else ss -tulpn "sport = :$1"; fi; }
+# Time any command N times: rep 5 cmd...
+rep() { local n=$1; shift; while (( n-- > 0 )); do "$@" || return; done; }
 
-# Search in history (case-insensitive grep)
-hgrep() {
-    history | grep -i "$@"
-}
-
-# Completion (bash completion support)
-if ! shopt -oq posix; then
-    if [ -f /usr/share/bash-completion/bash_completion ]; then
-        . /usr/share/bash-completion/bash_completion
-    elif [ -f /etc/bash_completion ]; then
-        . /etc/bash_completion
-    fi
-fi
-
-# fzf keybindings + completions (Ctrl+R, Ctrl+T, Alt+C)
-[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && \
-    . /usr/share/doc/fzf/examples/key-bindings.bash
-[ -f /usr/share/bash-completion/completions/fzf ] && \
-    . /usr/share/bash-completion/completions/fzf
-
-# External sources (load user-specific configurations)
-[ -f ~/.bash_aliases ] && . ~/.bash_aliases
-[ -f ~/.bash_local ] && . ~/.bash_local
-
-# Performance tip: Set this variable to skip git dirty check for faster prompts
-# export BASHRC_SKIP_GIT_DIRTY=1
-
-# zoxide → cd (must be last — after completions, mise, fzf, everything)
-if command -v zoxide &>/dev/null; then
-    eval "$(zoxide init bash)"
-    alias cd='z'
-fi
+# ── Local overrides ──────────────────────────────────────────────────────────
+[[ -f ~/.bash_aliases ]] && . ~/.bash_aliases
+[[ -f ~/.bash_local ]] && . ~/.bash_local
+:   # keep $? at 0 so the first prompt isn't red

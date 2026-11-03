@@ -72,6 +72,12 @@ set backupdir=~/.vim/backup   " Backup directory
 set directory=~/.vim/swap     " Swap directory
 set updatetime=300            " Faster updates
 set timeoutlen=500            " Timeout for key combinations
+set ttimeoutlen=10            " Instant Esc
+set lazyredraw                " No redraw during macros/scripts
+set ttyfast                   " Fast terminal
+set synmaxcol=300             " Don't syntax-highlight huge lines
+set redrawtime=2000           " Give up on slow highlighting
+set nocursorcolumn            " Cheap rendering
 
 " Create directories if they don't exist
 if !isdirectory(expand(&undodir))
