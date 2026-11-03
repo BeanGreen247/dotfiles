@@ -128,12 +128,12 @@ gmode() {
 }
 
 # ── styles: each builds PS1 from __who __venv __dur __rcs __cc and the git vars
-__ps_classic() {    # ~/…/cwd branch ⇡1 +1 !2 ?3 took 5s / ❯
-    PS1="\n$__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__cc$__rcs❯$__rst "
+__ps_classic() {    # ~/…/cwd branch ⇡1 +1 !2 ?3 took 5s ❯
+    PS1="$__who$__venv$__c_cwd\\w$__rst$__git$__dur $__cc$__rcs❯$__rst "
 }
 __ps_pure() {       # pure: dim branch with *, arrows, minimal noise
     local g=; [[ -n $__gb ]] && { g=" $__c_dim$__gb"; (( __gdirty )) && g+='*'; (( __ga )) && g+=" ⇡"; (( __gbh )) && g+=" ⇣"; g+=$__rst; }
-    PS1="\n$__who$__venv$__c_cwd\\w$__rst$g$__dur\n$__cc❯$__rst "
+    PS1="$__who$__venv$__c_cwd\\w$__rst$g$__dur $__cc❯$__rst "
 }
 __ps_minimal() {    # one line: cwd basename + ❯
     local g=; [[ -n $__gb ]] && g=" $__c_dim$__gb$__rst"
@@ -144,7 +144,7 @@ __ps_robby() {      # robbyrussell: ➜  dir git:(branch ✗)
     PS1="$__cc➜$__rst  $__who$__c_ok\\W$__rst$g$__dur "
 }
 __ps_box() {        # bira: ╭─ user@host cwd git / ╰─❯
-    PS1="\n$__c_dim╭─$__rst$__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__c_dim╰─$__cc$__rcs❯$__rst "
+    PS1="$__c_dim╭─$__rst$__who$__venv$__c_cwd\\w$__rst$__git$__dur $__c_dim─$__cc$__rcs❯$__rst "
 }
 __ps_lambda() {     # lambda: one line  λ cwd branch
     PS1="$__cc$__rcs""λ$__rst $__who$__c_cwd\\W$__rst$__git "
@@ -153,12 +153,12 @@ __ps_retro() {      # classic bash look: [user@host cwd] (branch)$
     PS1="$__c_dim[$__rst\\u@\\h $__c_cwd\\w$__rst$__c_dim]$__rst$__git$__dur $__cc\\\$$__rst "
 }
 __ps_clock() {      # time on the left (bash \t, no fork)
-    PS1="\n$__c_dim\\t$__rst $__who$__venv$__c_cwd\\w$__rst$__git$__dur\n$__cc$__rcs❯$__rst "
+    PS1="$__c_dim\\t$__rst $__who$__venv$__c_cwd\\w$__rst$__git$__dur $__cc$__rcs❯$__rst "
 }
 __ps_powerline() {  # coloured bands, glyph-light (BASHRC_SEP)
     local s=$BASHRC_SEP fgd=$'\001\e[38;5;234m\002' e=$'\001\e[' x=$'m\002'
     local bgc="$e""48;5;${__n_cwd}$x" bg
-    PS1="\n$bgc$fgd \\w "
+    PS1="$bgc$fgd \\w "
     local prev=$__n_cwd
     if [[ -n $__gb ]]; then
         (( __gdirty )) && bg=$__n_warn || bg=$__n_ok
@@ -166,7 +166,7 @@ __ps_powerline() {  # coloured bands, glyph-light (BASHRC_SEP)
     fi
     local rcn=$__n_ok; (( __rc )) && { rcn=$__n_err; PS1+="$e""38;5;$prev;48;5;$rcn$x$s$e""48;5;$rcn$x$fgd $__rc "; prev=$rcn; }
     PS1+="$__rst$e""38;5;$prev$x$s$__rst$__dur "
-    [[ -n $__who$__venv ]] && PS1="\n$__who$__venv${PS1#$'\n'}"
+    [[ -n $__who$__venv ]] && PS1="$__who$__venv$PS1"
 }
 declare -F "__ps_$BASHRC_STYLE" &>/dev/null || BASHRC_STYLE=classic
 
