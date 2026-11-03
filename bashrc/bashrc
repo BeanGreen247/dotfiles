@@ -50,8 +50,6 @@ BASHRC_GIT_SLOW_MS=${BASHRC_GIT_SLOW_MS:-150}
 BASHRC_SEP=${BASHRC_SEP:-▶}
 PROMPT_DIRTRIM=3
 declare -A __git_slow=()
-__t0=
-trap '[[ -z $__t0 && $BASH_COMMAND != __prompt ]] && __t0=${EPOCHREALTIME/[.,]/}' DEBUG   # start time, no fork
 
 # palette: cwd ok warn err accent dim   (256-colour codes)
 declare -A __PAL=(
@@ -127,13 +125,13 @@ gmode() {
     __git_slow=(); echo "git prompt: $BASHRC_GIT"
 }
 
-# ── styles: each builds PS1 from __who __venv __dur __rcs __cc and the git vars
-__ps_classic() {    # ~/…/cwd branch ⇡1 +1 !2 ?3 took 5s ❯
-    PS1="$__who$__venv$__c_cwd\\w$__rst$__git$__dur $__cc$__rcs❯$__rst "
+# ── styles: each builds PS1 from __who __venv __rcs __cc and the git vars
+__ps_classic() {    # ~/…/cwd branch ⇡1 +1 !2 ?3 ❯
+    PS1="$__who$__venv$__c_cwd\\w$__rst$__git $__cc$__rcs❯$__rst "
 }
 __ps_pure() {       # pure: dim branch with *, arrows, minimal noise
     local g=; [[ -n $__gb ]] && { g=" $__c_dim$__gb"; (( __gdirty )) && g+='*'; (( __ga )) && g+=" ⇡"; (( __gbh )) && g+=" ⇣"; g+=$__rst; }
-    PS1="$__who$__venv$__c_cwd\\w$__rst$g$__dur $__cc❯$__rst "
+    PS1="$__who$__venv$__c_cwd\\w$__rst$g $__cc❯$__rst "
 }
 __ps_minimal() {    # one line: cwd basename + ❯
     local g=; [[ -n $__gb ]] && g=" $__c_dim$__gb$__rst"
@@ -141,19 +139,19 @@ __ps_minimal() {    # one line: cwd basename + ❯
 }
 __ps_robby() {      # robbyrussell: ➜  dir git:(branch ✗)
     local g=; [[ -n $__gb ]] && { g=" $__c_cwd""git:($__c_err$__gb$__c_cwd)$__rst"; (( __gdirty )) && g+=" $__c_warn✗$__rst"; }
-    PS1="$__cc➜$__rst  $__who$__c_ok\\W$__rst$g$__dur "
+    PS1="$__cc➜$__rst  $__who$__c_ok\\W$__rst$g "
 }
 __ps_box() {        # bira: ╭─ user@host cwd git / ╰─❯
-    PS1="$__c_dim╭─$__rst$__who$__venv$__c_cwd\\w$__rst$__git$__dur $__c_dim─$__cc$__rcs❯$__rst "
+    PS1="$__c_dim╭─$__rst$__who$__venv$__c_cwd\\w$__rst$__git $__c_dim─$__cc$__rcs❯$__rst "
 }
 __ps_lambda() {     # lambda: one line  λ cwd branch
     PS1="$__cc$__rcs""λ$__rst $__who$__c_cwd\\W$__rst$__git "
 }
 __ps_retro() {      # classic bash look: [user@host cwd] (branch)$
-    PS1="$__c_dim[$__rst\\u@\\h $__c_cwd\\w$__rst$__c_dim]$__rst$__git$__dur $__cc\\\$$__rst "
+    PS1="$__c_dim[$__rst\\u@\\h $__c_cwd\\w$__rst$__c_dim]$__rst$__git $__cc\\\$$__rst "
 }
 __ps_clock() {      # time on the left (bash \t, no fork)
-    PS1="$__c_dim\\t$__rst $__who$__venv$__c_cwd\\w$__rst$__git$__dur $__cc$__rcs❯$__rst "
+    PS1="$__c_dim\\t$__rst $__who$__venv$__c_cwd\\w$__rst$__git $__cc$__rcs❯$__rst "
 }
 __ps_powerline() {  # coloured bands, glyph-light (BASHRC_SEP)
     local s=$BASHRC_SEP fgd=$'\001\e[38;5;234m\002' e=$'\001\e[' x=$'m\002'
@@ -165,7 +163,7 @@ __ps_powerline() {  # coloured bands, glyph-light (BASHRC_SEP)
         PS1+="$e""38;5;$prev;48;5;$bg$x$s$e""48;5;$bg$x$fgd $__gp "; prev=$bg
     fi
     local rcn=$__n_ok; (( __rc )) && { rcn=$__n_err; PS1+="$e""38;5;$prev;48;5;$rcn$x$s$e""48;5;$rcn$x$fgd $__rc "; prev=$rcn; }
-    PS1+="$__rst$e""38;5;$prev$x$s$__rst$__dur "
+    PS1+="$__rst$e""38;5;$prev$x$s$__rst "
     [[ -n $__who$__venv ]] && PS1="$__who$__venv$PS1"
 }
 declare -F "__ps_$BASHRC_STYLE" &>/dev/null || BASHRC_STYLE=classic
@@ -176,17 +174,7 @@ __prompt() {
     __pred_record
     __prompt_git
     history -a
-    local ms; __dur= __who= __venv= __rcs= __cc=$__c_ok
-    if [[ -n $__t0 ]]; then
-        ms=$(( (${EPOCHREALTIME/[.,]/} - __t0) / 1000 )); __t0=
-        if (( ms >= 2000 )); then
-            local s=$(( ms / 1000 ))
-            if (( s >= 3600 )); then __dur=" ${__c_warn}took $((s/3600))h$((s%3600/60))m"
-            elif (( s >= 60 )); then __dur=" ${__c_warn}took $((s/60))m$((s%60))s"
-            else __dur=" ${__c_warn}took ${s}s"; fi
-            __dur+=$__rst
-        fi
-    fi
+    local __who= __venv= __rcs= __cc=$__c_ok
     [[ -n $SSH_CONNECTION || $EUID == 0 ]] && __who="${__c_dim}\\u@\\h${__rst} "
     [[ -n $VIRTUAL_ENV ]] && __venv="${__c_dim}(${VIRTUAL_ENV##*/})${__rst} "
     (( rc )) && { __cc=$__c_err; __rcs="$rc "; }
@@ -196,47 +184,12 @@ __prompt() {
 }
 
 __prompt_save() { printf '%s %s\n' "$BASHRC_STYLE" "$BASHRC_THEME" > ~/.bash_prompt; }
-prompt() {
-    local rc=$?                         # must be first
-    __rc=$rc
-    __pred_record
-    __prompt_git
-    history -a
-    local ms; __dur= __who= __venv= __rcs= __cc=$__c_ok
-    if [[ -n $__t0 ]]; then
-        ms=$(( (${EPOCHREALTIME/[.,]/} - __t0) / 1000 )); __t0=
-        if (( ms >= 2000 )); then
-            local s=$(( ms / 1000 ))
-            if (( s >= 3600 )); then __dur=" ${__c_warn}took $((s/3600))h$((s%3600/60))m"
-            elif (( s >= 60 )); then __dur=" ${__c_warn}took $((s/60))m$((s%60))s"
-            else __dur=" ${__c_warn}took ${s}s"; fi
-            __dur+=$__rst
-        fi
-    fi
-    [[ -n $SSH_CONNECTION || $EUID == 0 ]] && __who="${__c_dim}\\u@\\h${__rst} "
-    [[ -n $VIRTUAL_ENV ]] && __venv="${__c_dim}(${VIRTUAL_ENV##*/})${__rst} "
-    (( rc )) && { __cc=$__c_err; __rcs="$rc "; }
-    "__ps_$BASHRC_STYLE"
-    [[ $EUID == 0 ]] && PS1=${PS1//❯/#}
-    [[ $TERM == linux ]] || PS1=$'\001\e]0;\\u@\\h: \\w\a\002'$PS1
-}
-
-__prompt_save() { printf '%s %s\n' "$BASHRC_STYLE" "$BASHRC_THEME" > ~/.bash_prompt; }
-__prompt_preview() {      # render every style/palette without forks (PS1@P)
-    local keep=$BASHRC_STYLE s out
-    __rc=0 __who= __venv= __dur=" ${__c_warn}took 3s${__rst}" __rcs= __cc=$__c_ok
-    __prompt_git
-    for s in "$@"; do
-        "__ps_$s"; out=${PS1@P}; out=${out//[$'\001\002']/}
-        printf '%-10s%s\n' "$s" "${out#$'\n'}" | sed 's/^\(.\{10\}\)\n*/\1/' 2>/dev/null || printf '%s\n' "$out"
-    done
-}
 prompt() {
     local styles="classic pure minimal robby box lambda retro clock powerline" s
     case $1 in
         '')       echo "styles: $styles"; echo "current: $BASHRC_STYLE / $BASHRC_THEME" ;;
         preview)  local keep=$BASHRC_STYLE
-                  __rc=0 __who= __venv= __dur=" ${__c_warn}took 3s${__rst}" __rcs= __cc=$__c_ok; __prompt_git
+                  __rc=0 __who= __venv= __rcs= __cc=$__c_ok; __prompt_git
                   for s in $styles; do
                       printf '\n\033[2m%s\033[0m' "$s"; "__ps_$s"; local o=${PS1@P}; printf '%s' "${o//[$'\001\002']/}"; echo
                   done ;;
@@ -249,7 +202,7 @@ theme() {
         '')      echo "themes: ${!__PAL[*]}"; echo "current: $BASHRC_THEME" ;;
         preview) local keep=$BASHRC_THEME
                  for t in "${!__PAL[@]}"; do
-                     __theme_apply "$t"; __rc=0 __who= __venv= __dur= __rcs= __cc=$__c_ok; __prompt_git; "__ps_$BASHRC_STYLE"
+                     __theme_apply "$t"; __rc=0 __who= __venv= __rcs= __cc=$__c_ok; __prompt_git; "__ps_$BASHRC_STYLE"
                      o=${PS1@P}; printf '\n\033[2m%-10s\033[0m%s\n' "$t" "${o//[$'\001\002']/}"
                  done; __theme_apply "$keep" ;;
         *)       if __theme_apply "$1"; then BASHRC_THEME=$1; __prompt_save; else echo "unknown theme: $1 (${!__PAL[*]})" >&2; return 1; fi ;;

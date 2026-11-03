@@ -764,6 +764,23 @@ MIT License - Feel free to use and modify as needed.
 - Own command prediction (no deps): Right/End/Ctrl-F at end of line fills the best match (ranked by prefix, cwd, previous command, recency); Ctrl-Space cycles; empty line + Right predicts the next command. Data: `~/.bash_predict`.
 - `j frag` / Alt-J: jump to frequent directories (from the same data).
 - If `fzf` is installed: Ctrl-R history, Ctrl-T files, Alt-C dirs, `fe fcd fgb fgl fgs fkill fdsh fdlog`.
-- Prompt: cwd, git branch with ahead/behind and staged/modified/new counts, rebase/merge state, exit code, command duration, venv, ssh host. `gmode` switches git between `full` (one `git status` per prompt) and `fast` (no fork); repos slower than 150 ms are demoted automatically.
+- Prompt: cwd, git branch with ahead/behind and staged/modified/new counts, rebase/merge state, exit code, venv, ssh host. `gmode` switches git between `full` (one `git status` per prompt) and `fast` (no fork); repos slower than 150 ms are demoted automatically.
 - Windows startup: most Git Bash delay is `/etc/profile.d/*` plus Defender. Launch the terminal with `bash.exe --noprofile --rcfile ~/.bashrc -i` and exclude the Git folder from Defender scanning.
 - Prompt styles (`prompt`, `prompt preview`): classic, pure, minimal, robby, box, lambda, retro, clock, powerline. Palettes (`theme`, `theme preview`): midnight, gruvbox, nord, dracula, solarized, tokyo, mono. The choice is saved in `~/.bash_prompt`. For powerline fonts set `BASHRC_SEP=''` in `~/.bash_local`.
+- No command timer: the old "took Ns" prompt segment and its `DEBUG` trap were removed (a trap that runs before every command is pure overhead).
+
+### Debian: faster login shells (system-level, not in this repo)
+
+`/etc/profile.d/bash_completion.sh` eagerly loads the whole bash-completion library in every login shell (SSH, TTY, `reload` = `exec bash -l`), which makes the lazy-on-first-Tab loader in the bashrc pointless there. Login shell startup drops from about 22 ms to about 10 ms without it. The bashrc still sources `/usr/share/bash-completion/bash_completion` on the first Tab, so the `bash-completion` package stays installed.
+
+`chmod -x` does not work: `/etc/profile` sources each `profile.d/*.sh` if it is readable. Renaming works, but a package upgrade can restore the file. Use `dpkg-divert` so the rename survives upgrades:
+
+```bash
+sudo dpkg-divert --local --rename \
+  --divert /etc/profile.d/bash_completion.sh.disabled \
+  --add /etc/profile.d/bash_completion.sh
+# undo:
+sudo dpkg-divert --local --rename --remove /etc/profile.d/bash_completion.sh
+```
+
+If the file was already moved by hand, restore it first (`sudo mv ...sh.disabled ...sh`), then run the divert. Verify with `time bash -l -i -c exit` and `bash -l -i -c 'echo ${BASH_COMPLETION_VERSINFO-unset}'` (should print `unset`).
