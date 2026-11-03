@@ -502,6 +502,18 @@ alias h='history'
 alias c='clear'
 alias q='exit'
 
+# ── Plain option-only aliases (no replacement tools; df/du untouched) ────────
+alias ls='ls --color=auto'
+alias ll='ls -alFh'
+alias la='ls -A'
+alias l='ls -CF'
+alias lt='ls -alFht'
+alias lsize='ls -alFhS'
+alias grep='grep --color=auto'
+alias egrep='grep -E --color=auto'
+alias fgrep='grep -F --color=auto'
+alias free='free -h'
+
 # ── Git ──────────────────────────────────────────────────────────────────────
 alias g='git'
 alias gs='git status -sb'

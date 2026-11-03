@@ -760,7 +760,7 @@ MIT License - Feel free to use and modify as needed.
 ## Bash: fast path, prediction, fzf
 
 - Startup uses builtins only (no forks/evals); completion loads lazily on first Tab. Measure: `bashtime`.
-- No ls/df/cat/cd replacements; git aliases kept.
+- No replacement tools (eza/duf/bat/zoxide); only plain option aliases for ls/ll/la/grep/free. df and du are untouched. Git aliases kept.
 - Own command prediction (no deps): Right/End/Ctrl-F at end of line fills the best match (ranked by prefix, cwd, previous command, recency); Ctrl-Space cycles; empty line + Right predicts the next command. Data: `~/.bash_predict`.
 - `j frag` / Alt-J: jump to frequent directories (from the same data).
 - If `fzf` is installed: Ctrl-R history, Ctrl-T files, Alt-C dirs, `fe fcd fgb fgl fgs fkill fdsh fdlog`.
